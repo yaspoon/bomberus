@@ -1,7 +1,8 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
 use std::fmt;
 use std::fmt::Display;
 use std::any::{TypeId, Any};
+use std::cell::{RefCell, RefMut, Ref};
 
 struct Position {
 	x: f64,
@@ -11,17 +12,6 @@ struct Position {
 impl Position {
 	pub fn new(x: f64, y: f64) -> Position {
 		return Position {x, y};
-	}
-}
-
-impl Component for Position {
-	fn get_type(&self) -> TypeId {
-		//return ComponentType::Position;
-		return TypeId::of::<Position>();
-	}
-
-	fn as_any(&self) -> &dyn Any {
-		return self;
 	}
 }
 
@@ -42,16 +32,6 @@ impl Moveable {
 	}
 }
 
-impl Component for Moveable {
-	fn get_type(&self) -> TypeId {
-		return TypeId::of::<Moveable>();
-	}
-
-	fn as_any(&self) -> &dyn Any {
-		return self;
-	}
-}
-
 impl fmt::Display for Moveable {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		return write!(f, "dx:{}, dy:{}", self.dx, self.dy);
@@ -67,30 +47,20 @@ struct Drawable {
 	//Image stuff here
 }
 
-#[derive(Hash, PartialEq, Eq, Debug)]
-pub enum ComponentType {
-	Position = 0x0,
-	Moveable,
-	Collidable,
-	Drawable,	
-	Count,
-}
-
-impl Display for ComponentType {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let name = match *self {
-			ComponentType::Position => "Position",
-			_ => panic!("Unknown component type"),
-		};
-		return write!(f, "type:{}", name);
-	}
-}
-
-pub trait Component: fmt::Display {
-	//fn get_type(&self) -> ComponentType;
-	fn get_type(&self) -> TypeId;
-
+pub trait ComponentHashMap {
 	fn as_any(&self) -> &dyn Any;
+	
+	fn as_any_mut(&mut self) -> &mut dyn Any;
+}
+
+impl<T: 'static> ComponentHashMap for RefCell<HashMap<u64, T>> {
+	fn as_any(&self) -> &dyn Any {
+		return self as &dyn Any;
+	}
+
+	fn as_any_mut(&mut self) -> &mut dyn Any {
+		return self as &mut dyn Any;
+	}
 }
 
 #[derive(Copy, Clone, PartialEq, Debug)]
@@ -108,26 +78,12 @@ struct EntitySystem {
 	next_id: u64,
 	entities: Vec<Entity>,
 	entity_names: HashMap<u64, String>,
-	components: HashMap<TypeId, HashMap<u64, Box<dyn Component>>>,
+	components: HashMap<TypeId, Box<dyn ComponentHashMap>>,
 }
 
 impl EntitySystem {
 	pub fn new() -> EntitySystem {
-		let mut components = HashMap::new();
-		/*
-		components.insert(ComponentType::Position, HashMap::new());
-		components.insert(ComponentType::Moveable, HashMap::new());
-		components.insert(ComponentType::Collidable, HashMap::new());
-		components.insert(ComponentType::Drawable, HashMap::new());
-		*/
-		components.insert(TypeId::of::<Position>(), HashMap::new());
-
-		/*
-		if components.len() != ComponentType::Count as usize {
-			panic!("Missing component types from store count in store {} expected {}", components.len(), ComponentType::Count as u64);
-		}
-		*/
-		return EntitySystem {next_id: 0, entities: Vec::new(), entity_names: HashMap::new(), components};
+		return EntitySystem {next_id: 0, entities: Vec::new(), entity_names: HashMap::new(), components: HashMap::new()};
 	}
 
 	pub fn new_entity(&mut self) -> Result<Entity, String> {
@@ -164,55 +120,77 @@ impl EntitySystem {
 		} else {
 			panic!("Failed to find entity for removal:{:?}", ent);
 		}
+
+		panic!("Removing components not implemented");
 	}
 
-	pub fn get_component_for_entity(&mut self, ent: Entity, component_type: TypeId) -> Result<&Box<dyn Component>, String> {
-		let store = match self.components.get(&component_type) {
-			Some(s) => s,
-			None => return Err("No such component type in store".to_string()),
-		};	
-
-		match store.get(&ent.id) {
-			Some(c) => return Ok(c),
-			None => return Err(format!("No component for Entity {}", ent)),
-		};
-	}
-
-	pub fn get_all_components_of_type(&self, component_type: TypeId) -> Result<Vec<(&u64, &Box<dyn Component>)>, String> {
-		let store = match self.components.get(&component_type) {
-			Some(s) => s,
+/* Currently not working and I'm too tired to fix it
+	pub fn borrow_component_for_entity<ComponentType: 'static>(&self, entity: Entity) -> Result<&ComponentType, String> {
+		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
 			None => return Err(format!("Unknown component type in store")),
 		};
 
-		return Ok(store.iter().collect());
-	}
-
-	pub fn get_all_components_of_type_for_ids_mut(&self, ids: HashSet<u64>, component_type: TypeId) -> Result<Vec<(&u64, &Box<dyn Component>)>, String> {
-		let store = match self.components.get(&component_type) {
-			Some(s) => s,
-			None => return Err(format!("Unknown component type in store")),
-		};
-
-		return Ok(store.iter().filter(|(id, comp)| ids.contains(id)).collect());
-	}
-
-	pub fn add_component(&mut self, ent: Entity, comp: Box<dyn Component>) -> Result<(), String> {
-		if !self.components.contains_key(&comp.get_type()) {
-			println!("Store doesn't contain component, creating");
-			self.components.insert(comp.get_type(), HashMap::new());
+		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
+			//This will panic if something has already borrowed it. Should probably not panic....
+			match store.borrow().get(&entity.id) {
+				Some(c) => return Ok(c),
+				None => return Err(format!("Couldn't find component for entity:{}", entity)),
+			}
 		}
 
-		let mut store = match self.components.get_mut(&comp.get_type()) {
-			Some(s) => s,
+		return Err(format!("Unable to downcast ref to expected component type"));
+	}
+*/
+
+	pub fn borrow_all_components_of_type<ComponentType: 'static>(&self) -> Result<Ref<HashMap<u64, ComponentType>>, String> {
+		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
+			None => return Err(format!("Unknown component type in store")),
+		};
+
+		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
+			//This will panic if something has already borrowed it. Should probably not panic....
+			return Ok(store.borrow());
+		}
+
+		return Err(format!("Unable to downcast ref to expected component type"));
+	}
+
+	pub fn borrow_all_components_of_type_mut<ComponentType: 'static>(&self) -> Result<RefMut<HashMap<u64, ComponentType>>, String> {
+		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
+			None => return Err(format!("Unknown component type in store")),
+		};
+
+		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
+			//This will panic if something has already borrowed it. Should probably not panic....
+			return Ok(store.borrow_mut());
+		}
+
+		return Err(format!("Unable to downcast ref to expected component type"));
+	}
+
+	pub fn add_component_to_entity<ComponentType: 'static>(&mut self, ent: Entity, component: ComponentType) -> Result<(), String> {
+		if !self.components.contains_key(&TypeId::of::<ComponentType>()) {
+			println!("Store doesn't contain component, creating");
+			self.components.insert(TypeId::of::<ComponentType>(), Box::new(RefCell::new(HashMap::<u64, ComponentType>::new())));
+		}
+
+		let mut component_hashmap = match self.components.get_mut(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
 			None => return Err(format!("Unknown component in store")),
 		};
 
-		store.insert(ent.id, comp);
+		if let Some(store) = component_hashmap.as_any_mut().downcast_mut::<RefCell<HashMap<u64,ComponentType>>>() {
+			store.get_mut().insert(ent.id, component);
+		}
 
 		return Ok(());
 	}
 
-	pub fn remove_component(&mut self, ent: Entity, comp: TypeId) -> Result<(), String> {
+/*
+	pub fn remove_component_from_entity<ComponentType: 'static>(&mut self, ent: Entity) -> Result<(), String> {
 		let mut store = match self.components.get_mut(&comp) {
 			Some(s) => s,
 			None => return Err(format!("Unknown component type for store")),
@@ -223,51 +201,29 @@ impl EntitySystem {
 			None => return Err(format!("No such component for entity {}", ent)),
 		}
 	}
+*/
 }
 
 fn System_Moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
-	let moveables = match es.get_all_components_of_type(TypeId::of::<Moveable>()) {
+	let moveables = match es.borrow_all_components_of_type::<Moveable>() {
 		Ok(m) => m,
 		Err(e) => return Err(e),
 	};
 
-	let entity_ids: HashSet<u64> = moveables.iter().map(|(id, comp)| **id).collect();
-
-	let positions = match es.get_all_components_of_type_for_ids_mut(entity_ids, TypeId::of::<Position>()) {
+	let mut positions = match es.borrow_all_components_of_type_mut::<Position>() {
 		Ok(p) => p,
 		Err(e) => return Err(e),
 	};
 
-	if positions.len() != moveables.len() {
-		return Err(format!("Positions.len() == {} Moveables.len() == {}", positions.len(), moveables.len()));
-	}
-
-	//TODO:Trying to get this working
-	for mp in moveables.into_iter().zip(positions.into_iter()) {
-		match mp {
-			((mid, mcomponent), (pid, pcomponent)) => {
-				println!("Moveable {} data {} Position {} data {}", mid, mcomponent, pid, pcomponent);
-				if mid != pid {
-					return Err(format!("mid and pid don't match mid:{} pid:{}", mid, pid));
-				}
-
-				let moveable: &mut Moveable = match mcomponent.as_any().downcast_mut::<Moveable>() {
-					Some(m) => m,
-					None => return Err(format!("Failed to downcast mcomponent to moveable")),
-				};
-
-				let position: &mut Position = match pcomponent.as_any().downcast_mut::<Position>() {
-					Some(p) => p,
-					None => return Err(format!("Failed to downcast pcomponent to position")),
-				};
-
+	for (id, moveable) in moveables.iter() {
+		match positions.get_mut(&id) {
+			Some(position) => {
 				position.x += moveable.dx * dt;
 				position.y += moveable.dy * dt;
-
-				
 			},
-			_ => println!("Failed to match, expected 2 component tuple"),
+			None => return Err(format!("No position for moveable for entity {}", id)),
 		}
+
 	}
 
 	return Ok(());
@@ -284,19 +240,38 @@ fn main() {
 		Err(e) => panic!("Failed to create player:{}", e),
 	};
 
-	match es.add_component(player, Box::new(Position::new(0.0, 0.0))) {
+	match es.add_component_to_entity(player, Position::new(0.0, 0.0)) {
 		Ok(_) => println!("Added position component to player"),
 		Err(e) => panic!("Failed to add position component to player:{}", e),
 	}
 
-	match es.add_component(player, Box::new(Moveable::new(0.0, 0.0))) {
+	match es.add_component_to_entity(player, Moveable::new(1.0, 1.0)) {
 		Ok(_) => println!("Added moveable component to player"),
 		Err(e) => panic!("Failed to add moveable component to player:{}", e),
 	}
 
-	match System_Moveable(&mut es, 1.0) {
-		Ok(_) => println!("Ran System_Moveable"),
-		Err(e) => println!("Failed to run System_Moveable:{}", e),
+	for i in 0..10 {
+		/* Need to fix this when I'm not so tired
+		match es.borrow_component_for_entity::<Position>(player) {
+			Ok(position) => println!("Frame:{} Player position x:{} y:{}", i, position.x, position.y),
+			Err(e) => println!("Failed to player position:{}", e),
+		}
+		*/
+		match es.borrow_all_components_of_type::<Position>() {
+			Ok(positions) => { 
+				match positions.get(&player.id) {
+					Some(position) => println!("Frame:{} Player position x:{} y:{}", i, position.x, position.y),
+					None => println!("Failed to player position"),
+				}
+			},
+			Err(e) => println!("Unable to borrow positions:{}", e),
+		};
+
+
+		match System_Moveable(&mut es, 1.0) {
+			Ok(_) => println!("Ran System_Moveable"),
+			Err(e) => println!("Failed to run System_Moveable:{}", e),
+		}
 	}
 
 }
