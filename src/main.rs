@@ -417,8 +417,41 @@ fn main() {
         },
     };
 
+    let mut system_drawable = move |es: &mut EntitySystem, _dt: f64| -> Result<(), String> {
+        let drawables = match es.borrow_all_components_of_type::<Drawable>() {
+            Ok(d) => d,
+            Err(e) => return Err(e),
+        };
+
+        let positions = match es.borrow_all_components_of_type::<Position>() {
+            Ok(p) => p,
+            Err(e) => return Err(e),
+        };
+
+        canvas.clear();
+
+        for (id, drawable) in drawables.iter() {
+            match positions.get(&id) {
+                Some(position) => {
+                    let center = Point::new(position.x as i32, position.y as i32);
+                    match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to copy texture:{}", e),
+                    }
+                },
+                None => return Err(format!("No position for moveable for entity {}", id)),
+            }
+
+        }
+
+        canvas.present();
+
+        return Ok(());
+    };
+
     //Systems
-    let mut systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable, &system_drawable];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable];
+    let mut systems_mut: Vec<&mut dyn FnMut(&mut EntitySystem, f64) -> Result<(), String>> = vec![&mut system_drawable];
 
     let mut frame: usize = 0;
     //Main game loop
@@ -459,6 +492,10 @@ fn main() {
         //drawing
         for system in systems.iter() {
             system(&mut es, 1.0);
+        }
+
+        for system_mut in systems_mut.iter_mut() {
+            system_mut(&mut es, 1.0);
         }
 
         //Sleep for the rest of the frame
