@@ -9,7 +9,6 @@ use std::time::Duration;
 //sdl2
 extern crate sdl2;
 use sdl2::pixels::Color;
-use sdl2::event::Event;
 use sdl2::keyboard::Keycode;
 use sdl2::rect::Rect;
 use sdl2::rect::Point;
@@ -390,7 +389,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 		Err(e) => panic!("Failed to add position component to player:{}", e),
 	}
 
-	match es.add_component_to_entity(player, Moveable::new(1.0, 1.0)) {
+	match es.add_component_to_entity(player, Moveable::new(0.0, 0.0)) {
 		Ok(_) => println!("Added moveable component to player"),
 		Err(e) => panic!("Failed to add moveable component to player:{}", e),
 	}
@@ -446,8 +445,8 @@ fn main() {
     canvas.present();
 
     //SDL2_image setup
-    let sdl_image_context = match sdl2::image::init(sdl2::image::InitFlag::PNG) {
-        Ok(sic) => sic,
+    match sdl2::image::init(sdl2::image::InitFlag::PNG) {
+        Ok(_) => (),
         Err(e) => {
             println!("Failed to initialise SDL2_image:{}", e);
             return;
@@ -456,25 +455,6 @@ fn main() {
 
     //Entity System setup
 	let mut es = EntitySystem::new();
-
-    //Load game texture
-    let texture_ent = match es.new_entity_with_name(String::from("game_texture")) {
-        Ok(te) => te,
-        Err(e) => {
-            println!("Failed to create texture entity:{}", e);
-            return;
-        },
-
-    };
-
-    let texture_creator_ent = match es.new_entity_with_name(String::from("texture_creator")) {
-        Ok(tc) => tc,
-        Err(e) => {
-            println!("Failed to create texture entity:{}", e);
-            return;
-        },
-
-    };
 
     let texture_creator = canvas.texture_creator();
 
@@ -485,7 +465,6 @@ fn main() {
             return;
         },
     };
-    //es.add_component_to_entity::<sdl2::render::Texture>(texture_ent, game_texture);
 
     let player = match create_player_entity(&mut es) {
         Ok(p) => p,
@@ -494,6 +473,7 @@ fn main() {
             return;
         },
     };
+
     let mut event_pump = match sdl_context.event_pump() {
         Ok(ep) => ep,
         Err(e) => {
