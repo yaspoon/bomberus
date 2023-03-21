@@ -460,9 +460,97 @@ fn main() {
         for event in event_pump.poll_iter() {
             use sdl2::event::Event;
             match event {
-                Event::KeyDown {keycode: Escape, ..} => {
+                Event::KeyDown {keycode: Some(Keycode::Left), repeat: false, ..} => { 
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        if mv.dx > 0.0 {
+                            mv.dx = 0.0;
+                        } else {
+                            mv.dx = -1.0;
+                        }
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyDown {keycode: Some(Keycode::Right), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        if mv.dx < 0.0 {
+                            mv.dx = 0.0;
+                        } else {
+                            mv.dx = 1.0;
+                        }
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyDown {keycode: Some(Keycode::Up), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        if mv.dy > 0.0 {
+                            mv.dy = 0.0;
+                        } else {
+                            mv.dy = -1.0;
+                        }
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyDown {keycode: Some(Keycode::Down), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        if mv.dy < 0.0 {
+                            mv.dy = 0.0;
+                        } else {
+                            mv.dy = 1.0;
+                        }
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
                     println!("Quiting");
                     break 'running;
+                },
+                Event::KeyUp {keycode: Some(Keycode::Left), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        mv.dx += 1.0;
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyUp {keycode: Some(Keycode::Right), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        mv.dx -= 1.0;
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyUp {keycode: Some(Keycode::Up), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        mv.dy += 1.0;
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
+                },
+                Event::KeyUp {keycode: Some(Keycode::Down), repeat: false, ..} => {
+                    match es.component_for_entity_mut::<Moveable, _>(player, |mv: &mut Moveable| -> Result<(), String> {
+                        mv.dy -= 1.0;
+                        return Ok(());
+                    }) {
+                        Ok(_) => (),
+                        Err(e) => println!("Failed to up date moveable for player"),
+                    }
                 },
                 Event::Quit {..} => {
                     println!("Quiting");
