@@ -286,11 +286,21 @@ fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
 		Err(e) => return Err(e),
 	};
 
+    const MAX_SPEED: f64 = 10.0;
+
 	for (id, moveable) in moveables.iter() {
 		match positions.get_mut(&id) {
 			Some(position) => {
-				position.x += moveable.dx * dt;
-				position.y += moveable.dy * dt;
+                //If we're moving in a diagonal we need to scale the movement so the actual length
+                //is 1. This will probably break when I add in smoothing....
+                if moveable.dx != 0.0 && moveable.dy != 0.0 {
+                    let length = ((moveable.dx * moveable.dx) + (moveable.dy * moveable.dy)).sqrt();
+                    position.x += (MAX_SPEED * (moveable.dx / length)) * dt;
+                    position.y += (MAX_SPEED * (moveable.dy / length)) * dt;
+                } else {
+                    position.x += (MAX_SPEED * moveable.dx) * dt;
+                    position.y += (MAX_SPEED * moveable.dy) * dt;
+                }
 			},
 			None => return Err(format!("No position for moveable for entity {}", id)),
 		}
@@ -298,81 +308,6 @@ fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
 	}
 
 	return Ok(());
-}
-//fn system_drawable(es: &EntitySystem, canvas: &mut sdl2::render::Canvas<sdl2::video::Window>, game_texture: &sdl2::render::Texture) -> Result<(), String> {
-fn system_drawable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
-    //Draw stuff here
-    let mut graphics_map = match es.borrow_all_components_of_type_mut::<Graphics>() {
-        Ok(g) => g,
-        Err(e) => return Err(e),
-    };
-
-    if graphics_map.len() != 1 {
-        return Err(format!("Expected exactly one graphics component got:{}", graphics_map.len()));
-    }
-
-    let graphics_ent = match es.get_entity_for_name(String::from("graphics")) {
-        Ok(ge) => ge,
-        Err(e) => return Err(e),
-    };
-
-    let mut graphics = match graphics_map.get_mut(&graphics_ent.id) {
-        Some(g) => g,
-        None => return Err(format!("Failed to find component for graphics entity")),
-    };
-
-    let mut canvas = &mut graphics.canvas;
-
-    let texture_map = match es.borrow_all_components_of_type::<sdl2::render::Texture>() {
-        Ok(tm) => tm,
-        Err(e) => return Err(e),
-    };
-
-    if texture_map.len() != 1 {
-        return Err(format!("Expected exactly one texture component got:{}", texture_map.len()));
-    }
-
-    let texture_ent = match es.get_entity_for_name(String::from("texture")) {
-        Ok(te) => te,
-        Err(e) => return Err(e),
-    };
-
-    let game_texture = match texture_map.get(&texture_ent.id) {
-        Some(t) => t,
-        None => return Err(format!("Failed to find component for texture entity")),
-    };
-
-	let drawables = match es.borrow_all_components_of_type::<Drawable>() {
-		Ok(d) => d,
-		Err(e) => return Err(e),
-	};
-
-	let mut positions = match es.borrow_all_components_of_type::<Position>() {
-		Ok(p) => p,
-		Err(e) => return Err(e),
-	};
-
-    canvas.clear();
-
-	for (id, drawable) in drawables.iter() {
-		match positions.get(&id) {
-			Some(position) => {
-                let center = Point::new(position.x as i32, position.y as i32);
-                /*
-                match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w, drawable.h))) {
-                    Ok(_) => (),
-                    Err(e) => println!("Failed to copy texture:{}", e),
-                }
-                */
-			},
-			None => return Err(format!("No position for moveable for entity {}", id)),
-		}
-
-	}
-
-    canvas.present();
-
-    return Ok(());
 }
 
 fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
