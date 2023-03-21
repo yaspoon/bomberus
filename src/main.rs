@@ -192,6 +192,48 @@ impl EntitySystem {
 		return Err(format!("Unable to downcast ref to expected component type"));
 	}
 
+    pub fn component_for_entity<ComponentType: 'static, F>(&self, ent: Entity, cb: F) -> Result<(), String> where
+        F: Fn(&ComponentType) -> Result<(), String> {
+		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
+			None => return Err(format!("Unknown component type in store")),
+		};
+
+		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
+			//This will panic if something has already borrowed it. Should probably not panic....
+			let store = store.borrow();
+            let comp = match store.get(&ent.id) {
+                Some(c) => c,
+                None => return Err(format!("No such component for entity:{}", ent)),
+            };
+
+            return cb(comp);
+		}
+
+		return Err(format!("Unable to downcast ref to expected component type"));
+    }
+
+    pub fn component_for_entity_mut<ComponentType: 'static, F>(&self, ent: Entity, cb: F) -> Result<(), String> where
+        F: Fn(&mut ComponentType) -> Result<(), String> {
+		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
+			Some(chm) => chm,
+			None => return Err(format!("Unknown component type in store")),
+		};
+
+		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
+			//This will panic if something has already borrowed it. Should probably not panic....
+			let mut store = store.borrow_mut();
+            let comp = match store.get_mut(&ent.id) {
+                Some(c) => c,
+                None => return Err(format!("No such component for entity:{}", ent)),
+            };
+
+            return cb(comp);
+		}
+
+		return Err(format!("Unable to downcast ref to expected component type"));
+    }
+
 	pub fn add_component_to_entity<ComponentType: 'static>(&mut self, ent: Entity, component: ComponentType) -> Result<(), String> {
 		if !self.components.contains_key(&TypeId::of::<ComponentType>()) {
 			println!("Store doesn't contain component, creating");
