@@ -3,6 +3,8 @@ use std::collections::HashMap;
 use std::any::{TypeId, Any};
 use std::cell::{RefCell, RefMut, Ref};
 
+use sdl2::render::Texture;
+
 pub trait ComponentHashMap {
 	fn as_any(&self) -> & dyn Any;
 	
@@ -30,15 +32,16 @@ impl Display for Entity {
 	}
 }
 
-pub struct EntitySystem {
+pub struct EntitySystem<'a> {
 	next_id: u64,
     entities: HashMap<u64, String>,
 	entity_names: HashMap<String, u64>,
 	components: HashMap<TypeId, Box<dyn ComponentHashMap>>,
+    texture: Option<Texture<'a>>
 }
 
 impl EntitySystem {
-	pub fn new() -> EntitySystem {
+	pub fn new() -> EntitySystem<'static> {
 		return EntitySystem {next_id: 0, entities: HashMap::new(), entity_names: HashMap::new(), components: HashMap::new()};
 	}
 
@@ -187,5 +190,9 @@ impl EntitySystem {
 
 		return Err(format!("Unable to downcast ref to expected component type"));
 	}
+
+    pub fn set_texture_component(&mut self, texture: Option<Texture>) {
+        self.texture = texture;
+    }
 }
 

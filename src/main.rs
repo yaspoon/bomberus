@@ -142,6 +142,8 @@ fn main() {
         },
     };
 
+    es.set_texture_component(Some(game_texture));
+
     let player = match create_player_entity(&mut es) {
         Ok(p) => p,
         Err(e) => {
@@ -158,6 +160,7 @@ fn main() {
         },
     };
 
+    /*
     let mut system_drawable = move |es: &mut EntitySystem, _dt: f64| -> Result<(), String> {
         let drawables = match es.borrow_all_components_of_type::<Drawable>() {
             Ok(d) => d,
@@ -189,10 +192,11 @@ fn main() {
 
         return Ok(());
     };
+    */
 
     //Systems
     let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable];
-    let mut systems_mut: Vec<&mut dyn FnMut(&mut EntitySystem, f64) -> Result<(), String>> = vec![&mut system_drawable];
+    let mut systems_mut: Vec<&mut dyn FnMut(&mut EntitySystem, f64) -> Result<(), String>> = vec![]; //vec![&mut system_drawable];
 
     let mut frame: usize = 0;
     //Main game loop
