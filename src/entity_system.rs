@@ -3,7 +3,8 @@ use std::collections::HashMap;
 use std::any::{TypeId, Any};
 use std::cell::{RefCell, RefMut, Ref};
 
-use sdl2::render::Texture;
+use sdl2::render::{Canvas, Texture};
+use sdl2::video::Window;
 
 pub trait ComponentHashMap {
 	fn as_any(&self) -> & dyn Any;
@@ -37,12 +38,13 @@ pub struct EntitySystem<'a> {
     entities: HashMap<u64, String>,
 	entity_names: HashMap<String, u64>,
 	components: HashMap<TypeId, Box<dyn ComponentHashMap>>,
-    texture: Option<Texture<'a>>
+    canvas: RefCell<Canvas<Window>>,
+    texture: Texture<'a>
 }
 
-impl EntitySystem {
-	pub fn new() -> EntitySystem<'static> {
-		return EntitySystem {next_id: 0, entities: HashMap::new(), entity_names: HashMap::new(), components: HashMap::new()};
+impl<'a> EntitySystem<'a> {
+	pub fn new(canvas: Canvas<Window>, texture: Texture<'a>) -> EntitySystem<'a> {
+		return EntitySystem {next_id: 0, entities: HashMap::new(), entity_names: HashMap::new(), components: HashMap::new(), canvas: RefCell::new(canvas), texture};
 	}
 
 	pub fn new_entity(&mut self) -> Result<Entity, String> {
@@ -191,8 +193,12 @@ impl EntitySystem {
 		return Err(format!("Unable to downcast ref to expected component type"));
 	}
 
-    pub fn set_texture_component(&mut self, texture: Option<Texture>) {
-        self.texture = texture;
+    pub fn get_mut_canvas(&self) -> RefMut<Canvas<Window>> {
+        return self.canvas.borrow_mut();
+    }
+
+    pub fn get_texture(&self) -> &Texture<'a> {
+        return &self.texture;
     }
 }
 

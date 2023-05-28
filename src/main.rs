@@ -13,7 +13,7 @@ use sdl2::image::LoadTexture;
 
 mod components;
 mod entity_system;
-use components::{Position, Moveable, Drawable, Collidable};
+use components::{Position, Moveable, Drawable};
 use entity_system::{Entity, EntitySystem};
 
 fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
@@ -50,6 +50,42 @@ fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
 
 	return Ok(());
 }
+
+fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), String> {
+    let mut canvas = es.get_mut_canvas();
+
+    let game_texture = es.get_texture();
+    let drawables = match es.borrow_all_components_of_type::<Drawable>() {
+        Ok(d) => d,
+        Err(e) => return Err(e),
+    };
+
+    let positions = match es.borrow_all_components_of_type::<Position>() {
+        Ok(p) => p,
+        Err(e) => return Err(e),
+    };
+
+    canvas.clear();
+
+    for (id, drawable) in drawables.iter() {
+        match positions.get(&id) {
+            Some(position) => {
+                let center = Point::new(position.x as i32, position.y as i32);
+                match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
+                    Ok(_) => (),
+                    Err(e) => println!("Failed to copy texture:{}", e),
+                }
+            },
+            None => return Err(format!("No position for moveable for entity {}", id)),
+        }
+
+    }
+
+    canvas.present();
+
+    return Ok(());
+}
+
 
 fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 	let player = match es.new_entity_with_name("Player".to_string()) {
@@ -129,9 +165,6 @@ fn main() {
         },
     };
 
-    //Entity System setup
-	let mut es = EntitySystem::new();
-
     let texture_creator = canvas.texture_creator();
 
     let game_texture = match texture_creator.load_texture(Path::new("assets/bomb_party_v4.png")) {
@@ -142,7 +175,8 @@ fn main() {
         },
     };
 
-    es.set_texture_component(Some(game_texture));
+    //Entity System setup
+	let mut es = EntitySystem::new(canvas, game_texture);
 
     let player = match create_player_entity(&mut es) {
         Ok(p) => p,
@@ -160,43 +194,8 @@ fn main() {
         },
     };
 
-    /*
-    let mut system_drawable = move |es: &mut EntitySystem, _dt: f64| -> Result<(), String> {
-        let drawables = match es.borrow_all_components_of_type::<Drawable>() {
-            Ok(d) => d,
-            Err(e) => return Err(e),
-        };
-
-        let positions = match es.borrow_all_components_of_type::<Position>() {
-            Ok(p) => p,
-            Err(e) => return Err(e),
-        };
-
-        canvas.clear();
-
-        for (id, drawable) in drawables.iter() {
-            match positions.get(&id) {
-                Some(position) => {
-                    let center = Point::new(position.x as i32, position.y as i32);
-                    match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
-                        Ok(_) => (),
-                        Err(e) => println!("Failed to copy texture:{}", e),
-                    }
-                },
-                None => return Err(format!("No position for moveable for entity {}", id)),
-            }
-
-        }
-
-        canvas.present();
-
-        return Ok(());
-    };
-    */
-
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable];
-    let mut systems_mut: Vec<&mut dyn FnMut(&mut EntitySystem, f64) -> Result<(), String>> = vec![]; //vec![&mut system_drawable];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable, &system_drawable];
 
     let mut frame: usize = 0;
     //Main game loop
@@ -215,7 +214,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyDown {keycode: Some(Keycode::Right), repeat: false, ..} => {
@@ -228,7 +227,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyDown {keycode: Some(Keycode::Up), repeat: false, ..} => {
@@ -241,7 +240,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyDown {keycode: Some(Keycode::Down), repeat: false, ..} => {
@@ -254,7 +253,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyDown {keycode: Some(Keycode::Escape), ..} => {
@@ -267,7 +266,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyUp {keycode: Some(Keycode::Right), repeat: false, ..} => {
@@ -276,7 +275,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyUp {keycode: Some(Keycode::Up), repeat: false, ..} => {
@@ -285,7 +284,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::KeyUp {keycode: Some(Keycode::Down), repeat: false, ..} => {
@@ -294,7 +293,7 @@ fn main() {
                         return Ok(());
                     }) {
                         Ok(_) => (),
-                        Err(e) => println!("Failed to up date moveable for player"),
+                        Err(_) => println!("Failed to up date moveable for player"),
                     }
                 },
                 Event::Quit {..} => {
@@ -322,13 +321,12 @@ fn main() {
 		};
 		*/
 
-        //drawing
+        //Do the game things
         for system in systems.iter() {
-            system(&mut es, 1.0);
-        }
-
-        for system_mut in systems_mut.iter_mut() {
-            system_mut(&mut es, 1.0);
+            match system(&mut es, 1.0) {
+                Ok(_) => (),
+                Err(e) => panic!("System failed:{}", e),
+            }
         }
 
         //Sleep for the rest of the frame
