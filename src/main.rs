@@ -13,7 +13,7 @@ use sdl2::image::LoadTexture;
 
 mod components;
 mod entity_system;
-use components::{Position, Moveable, Drawable};
+use components::{Position, Moveable, Drawable, Animations};
 use entity_system::{Entity, EntitySystem};
 
 fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
@@ -60,6 +60,11 @@ fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), String> {
         Err(e) => return Err(e),
     };
 
+    let animations = match es.borrow_all_components_of_type::<Animations>() {
+        Ok(a) => a,
+        Err(e) => return Err(e),
+    };
+
     let positions = match es.borrow_all_components_of_type::<Position>() {
         Ok(p) => p,
         Err(e) => return Err(e),
@@ -76,9 +81,27 @@ fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), String> {
                     Err(e) => println!("Failed to copy texture:{}", e),
                 }
             },
-            None => return Err(format!("No position for moveable for entity {}", id)),
+            None => return Err(format!("No position for drawable for entity {}", id)),
         }
 
+    }
+
+    for (id, animations) in animations.iter() {
+        match positions.get(&id) {
+            Some(position) => {
+                let center = Point::new(position.x as i32, position.y as i32);
+                let animation = match animations.animation.get(&animations.current_animation) {
+                    Some(a) => a,
+                    None => continue,
+                };
+                let drawable: &Drawable = &animation.frames[animations.current_frame];
+                match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
+                    Ok(_) => (),
+                    Err(e) => println!("Failed to copy texture:{}", e),
+                }
+            },
+            None => return Err(format!("No position for animation for entity {}", id)),
+        }
     }
 
     canvas.present();

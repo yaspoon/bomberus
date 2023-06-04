@@ -1,4 +1,5 @@
 use std::fmt::{self, Display};
+use std::collections::HashMap;
 
 pub struct Position {
 	pub x: f64,
@@ -50,4 +51,35 @@ impl Drawable {
     pub fn new(x: i32, y: i32, w: u32, h: u32) -> Drawable {
         return Drawable {x, y, w, h};
     }
+}
+
+pub struct Animation {
+    pub frames: Vec<Drawable>,
+    pub fps: f32,
+}
+
+#[derive(PartialEq, Eq, std::hash::Hash)]
+pub enum AnimationType {
+    StandingDown,
+    StandingUp,
+    StandingLeft,
+    StandingRight,
+    WalkingDown,
+    WalkingUp,
+    WalkingLeft,
+    WalkingRight,
+}
+
+pub struct Animations {
+    pub animation: HashMap<AnimationType, Animation>,
+    pub current_animation: AnimationType,
+    pub current_frame: usize,
+    pub last_frame_time: f32,
+}
+
+pub enum Direction {
+    Down,
+    Up,
+    Left,
+    Right,
 }
