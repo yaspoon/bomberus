@@ -71,10 +71,16 @@ pub enum AnimationType {
 }
 
 pub struct Animations {
-    pub animation: HashMap<AnimationType, Animation>,
+    pub animations: HashMap<AnimationType, Animation>,
     pub current_animation: AnimationType,
     pub current_frame: usize,
     pub last_frame_time: f32,
+}
+
+impl Animations {
+    pub fn new(current_animation: AnimationType, animations: HashMap<AnimationType, Animation>) -> Self {
+        return Self {current_animation, animations: animations, current_frame: 0, last_frame_time: 0.0 };
+    }
 }
 
 pub enum Direction {

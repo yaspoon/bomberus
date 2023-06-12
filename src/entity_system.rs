@@ -6,6 +6,33 @@ use std::cell::{RefCell, RefMut, Ref};
 use sdl2::render::{Canvas, Texture};
 use sdl2::video::Window;
 
+use std::error::Error;
+
+#[derive(Debug)]
+pub enum EntitySystemError {
+    NoSuchComponent(String),
+    DowncastFailed(String),
+}
+
+impl fmt::Display for EntitySystemError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            EntitySystemError::NoSuchComponent(msg) => {
+                write!(f, "no such component stored in EntitySystem: {}", msg)
+            },
+            EntitySystemError::DowncastFailed(msg) => {
+                write!(f, "Downcast failed for component: {}", msg)
+            },
+        }
+    }
+}
+
+impl Error for EntitySystemError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        return Some(self);
+    }
+}
+
 pub trait ComponentHashMap {
 	fn as_any(&self) -> & dyn Any;
 	
@@ -79,10 +106,10 @@ impl<'a> EntitySystem<'a> {
 		panic!("Removing components not implemented");
 	}
 
-	pub fn borrow_all_components_of_type<ComponentType: 'static>(&self) -> Result<Ref<HashMap<u64, ComponentType>>, String> {
+	pub fn borrow_all_components_of_type<ComponentType: 'static>(&self) -> Result<Ref<HashMap<u64, ComponentType>>, EntitySystemError> {
 		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
 			Some(chm) => chm,
-			None => return Err(format!("Unknown component type in store")),
+			None => return Err(EntitySystemError::NoSuchComponent(format!("Unknown component type <{}> in store", std::any::type_name::<ComponentType>()))),
 		};
 
 		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
@@ -90,13 +117,13 @@ impl<'a> EntitySystem<'a> {
 			return Ok(store.borrow());
 		}
 
-		return Err(format!("Unable to downcast ref to expected component type"));
+		return Err(EntitySystemError::DowncastFailed(format!("Unable to downcast ref to expected component type <{}>", std::any::type_name::<ComponentType>())));
 	}
 
-	pub fn borrow_all_components_of_type_mut<ComponentType: 'static>(&self) -> Result<RefMut<HashMap<u64, ComponentType>>, String> {
+	pub fn borrow_all_components_of_type_mut<ComponentType: 'static>(&self) -> Result<RefMut<HashMap<u64, ComponentType>>, EntitySystemError> {
 		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
 			Some(chm) => chm,
-			None => return Err(format!("Unknown component type in store")),
+			None => return Err(EntitySystemError::NoSuchComponent(format!("Unknown component type <{}> in store", std::any::type_name::<ComponentType>()))),
 		};
 
 		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
@@ -104,7 +131,7 @@ impl<'a> EntitySystem<'a> {
 			return Ok(store.borrow_mut());
 		}
 
-		return Err(format!("Unable to downcast ref to expected component type"));
+		return Err(EntitySystemError::DowncastFailed(format!("Unable to downcast ref to expected component type <{}>", std::any::type_name::<ComponentType>())));
 	}
 
     pub fn component_for_entity<ComponentType: 'static, F>(&self, ent: Entity, cb: F) -> Result<(), String> where

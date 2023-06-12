@@ -1,5 +1,7 @@
 use std::path::Path;
 use std::time::Duration;
+use std::fmt;
+use std::error::Error;
 
 //sdl2
 extern crate sdl2;
@@ -15,21 +17,41 @@ mod components;
 mod entity_system;
 mod systems;
 use components::{Position, Moveable, Drawable, Animations};
-use entity_system::{Entity, EntitySystem};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
 use systems::{system_moveable, system_drawable, SystemsError};
 
+#[derive(Debug)]
+pub enum GameError {
+    EntitySystemError(EntitySystemError),
+    SystemsError(SystemsError),
 }
 
+impl fmt::Display for GameError {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        match self {
+            GameError::EntitySystemError(ese) => {
+                write!(f, "GameError:EntitySystemError:{}", ese)
             },
+            GameError::SystemsError(se) => {
+                write!(f, "GameError:SystemsError:{}", se)
             },
         }
     }
 }
 
+impl Error for GameError {}
 
+impl From<EntitySystemError> for GameError {
+    fn from(err: EntitySystemError) -> Self {
+        GameError::EntitySystemError(err)
+    }
 }
 
+impl From<SystemsError> for GameError {
+    fn from(err: SystemsError) -> Self {
+        GameError::SystemsError(err)
+    }
+}
 
 fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 	let player = match es.new_entity_with_name("Player".to_string()) {
