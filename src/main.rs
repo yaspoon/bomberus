@@ -13,100 +13,21 @@ use sdl2::image::LoadTexture;
 
 mod components;
 mod entity_system;
+mod systems;
 use components::{Position, Moveable, Drawable, Animations};
 use entity_system::{Entity, EntitySystem};
+use entity_system::{Entity, EntitySystem, EntitySystemError};
+use systems::{system_moveable, system_drawable, SystemsError};
 
-fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), String> {
-	let moveables = match es.borrow_all_components_of_type::<Moveable>() {
-		Ok(m) => m,
-		Err(e) => return Err(e),
-	};
-
-	let mut positions = match es.borrow_all_components_of_type_mut::<Position>() {
-		Ok(p) => p,
-		Err(e) => return Err(e),
-	};
-
-    const MAX_SPEED: f64 = 10.0;
-
-	for (id, moveable) in moveables.iter() {
-		match positions.get_mut(&id) {
-			Some(position) => {
-                //If we're moving in a diagonal we need to scale the movement so the actual length
-                //is 1. This will probably break when I add in smoothing....
-                if moveable.dx != 0.0 && moveable.dy != 0.0 {
-                    let length = ((moveable.dx * moveable.dx) + (moveable.dy * moveable.dy)).sqrt();
-                    position.x += (MAX_SPEED * (moveable.dx / length)) * dt;
-                    position.y += (MAX_SPEED * (moveable.dy / length)) * dt;
-                } else {
-                    position.x += (MAX_SPEED * moveable.dx) * dt;
-                    position.y += (MAX_SPEED * moveable.dy) * dt;
-                }
-			},
-			None => return Err(format!("No position for moveable for entity {}", id)),
-		}
-
-	}
-
-	return Ok(());
 }
 
-fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), String> {
-    let mut canvas = es.get_mut_canvas();
-
-    let game_texture = es.get_texture();
-    let drawables = match es.borrow_all_components_of_type::<Drawable>() {
-        Ok(d) => d,
-        Err(e) => return Err(e),
-    };
-
-    let animations = match es.borrow_all_components_of_type::<Animations>() {
-        Ok(a) => a,
-        Err(e) => return Err(e),
-    };
-
-    let positions = match es.borrow_all_components_of_type::<Position>() {
-        Ok(p) => p,
-        Err(e) => return Err(e),
-    };
-
-    canvas.clear();
-
-    for (id, drawable) in drawables.iter() {
-        match positions.get(&id) {
-            Some(position) => {
-                let center = Point::new(position.x as i32, position.y as i32);
-                match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
-                    Ok(_) => (),
-                    Err(e) => println!("Failed to copy texture:{}", e),
-                }
             },
-            None => return Err(format!("No position for drawable for entity {}", id)),
-        }
-
-    }
-
-    for (id, animations) in animations.iter() {
-        match positions.get(&id) {
-            Some(position) => {
-                let center = Point::new(position.x as i32, position.y as i32);
-                let animation = match animations.animation.get(&animations.current_animation) {
-                    Some(a) => a,
-                    None => continue,
-                };
-                let drawable: &Drawable = &animation.frames[animations.current_frame];
-                match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
-                    Ok(_) => (),
-                    Err(e) => println!("Failed to copy texture:{}", e),
-                }
             },
-            None => return Err(format!("No position for animation for entity {}", id)),
         }
     }
+}
 
-    canvas.present();
 
-    return Ok(());
 }
 
 
@@ -218,7 +139,7 @@ fn main() {
     };
 
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), String>> = vec![&system_moveable, &system_drawable];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_drawable];
 
     let mut frame: usize = 0;
     //Main game loop
