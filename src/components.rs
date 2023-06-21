@@ -55,11 +55,24 @@ impl Drawable {
 
 pub struct Animation {
     pub frames: Vec<Drawable>,
-    pub fps: f32,
+    pub fps: f64,
+    pub flip_horizontal: bool,
+    pub flip_vertical: bool,
+}
+
+impl Animation {
+    pub fn new() -> Self {
+        Animation {frames: Vec::new(), fps: 0.0, flip_horizontal: false, flip_vertical: false}
+    }
+
+    pub fn new_with_frames(frames: Vec<Drawable>, fps: f64, flip_horizontal: bool, flip_vertical: bool) -> Self {
+        Animation {frames, fps, flip_horizontal, flip_vertical}
+    }
 }
 
 #[derive(PartialEq, Eq, std::hash::Hash)]
 pub enum AnimationType {
+    Empty,
     StandingDown,
     StandingUp,
     StandingLeft,
@@ -74,7 +87,7 @@ pub struct Animations {
     pub animations: HashMap<AnimationType, Animation>,
     pub current_animation: AnimationType,
     pub current_frame: usize,
-    pub last_frame_time: f32,
+    pub last_frame_time: f64,
 }
 
 impl Animations {
