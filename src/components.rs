@@ -70,7 +70,7 @@ impl Animation {
     }
 }
 
-#[derive(PartialEq, Eq, std::hash::Hash)]
+#[derive(PartialEq, Eq, std::hash::Hash, Copy, Clone)]
 pub enum AnimationType {
     Empty,
     StandingDown,
@@ -96,6 +96,7 @@ impl Animations {
     }
 }
 
+#[derive(PartialEq, Eq, std::hash::Hash)]
 pub enum Direction {
     Down,
     Up,

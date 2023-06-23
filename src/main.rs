@@ -18,9 +18,9 @@ use sdl2::image::LoadTexture;
 mod components;
 mod entity_system;
 mod systems;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType};
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
-use systems::{system_moveable, system_animation, system_drawable, SystemsError};
+use systems::{system_moveable, system_animation, system_drawable, system_direction, SystemsError};
 
 #[derive(Debug)]
 pub enum GameError {
@@ -80,6 +80,12 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 		Err(e) => panic!("Failed to add drawable component to player:{}", e),
 	}
     */
+
+	match es.add_component_to_entity(player, Direction::Down) {
+		Ok(_) => println!("Added Direction component to player"),
+		Err(e) => panic!("Failed to add Direction component to player:{}", e),
+	}
+
     let animation_standing_down = Animation::new_with_frames(
             vec![
                 Drawable::new(16, 272, 15, 15),
@@ -116,6 +122,28 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
             false,
         );
 
+    let animation_walking_up = Animation::new_with_frames(
+            vec![
+                Drawable::new(0, 272, 15, 15),
+                Drawable::new(128, 272, 15, 15),
+                Drawable::new(144, 272, 15, 15),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let animation_walking_down = Animation::new_with_frames(
+            vec![
+                Drawable::new(16, 272, 15, 15),
+                Drawable::new(32, 272, 15, 15),
+                Drawable::new(48, 272, 15, 15),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
     let animation_walking_right = Animation::new_with_frames(
             vec![
                 Drawable::new(64, 272, 15, 15),
@@ -123,7 +151,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
                 Drawable::new(96, 272, 15, 15),
                 Drawable::new(112, 272, 15, 15),
             ],
-            1.0,
+            5.0,
             false,
             false,
         );
@@ -135,12 +163,12 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
                 Drawable::new(96, 272, 15, 15),
                 Drawable::new(112, 272, 15, 15),
             ],
-            1.0,
+            5.0,
             true,
             false,
         );
 
-    let player_animations = Animations::new(AnimationType::StandingDown, HashMap::from_iter([(AnimationType::WalkingRight, animation_walking_right), (AnimationType::WalkingLeft, animation_walking_left),
+    let player_animations = Animations::new(AnimationType::StandingDown, HashMap::from_iter([(AnimationType::WalkingUp, animation_walking_up), (AnimationType::WalkingDown, animation_walking_down), (AnimationType::WalkingRight, animation_walking_right), (AnimationType::WalkingLeft, animation_walking_left),
         (AnimationType::StandingDown, animation_standing_down), (AnimationType::StandingUp, animation_standing_up), (AnimationType::StandingRight, animation_standing_right), (AnimationType::StandingLeft, animation_standing_left),
     ]));
 
@@ -233,7 +261,7 @@ fn main() {
     };
 
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction];
 
     let mut previous_frame_time = Instant::now();
     let mut frame: usize = 0;
@@ -374,12 +402,14 @@ fn main() {
         //Sleep for the rest of the frame
         let frame_duration = Duration::new(1u64, 0u32) / 60;
         let frame_time = systems_frame_time - previous_frame_time; //The amount of time it's taken this frame to get here
+        /*
         match frame_duration.checked_sub(frame_time) {
             Some(d) => ::std::thread::sleep(d),
             None => (), //We ran overtime with this frame so don't sleep
         }
+        */
 
-        println!("Frame:{} FrameTime:{}", frame, frame_time.as_secs_f64());
+        //println!("Frame:{} FrameTime:{}", frame, frame_time.as_secs_f64());
 
         previous_frame_time = current_frame_time;
         frame += 1;
