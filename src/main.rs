@@ -18,7 +18,7 @@ use sdl2::image::LoadTexture;
 mod components;
 mod entity_system;
 mod systems;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction};
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
 use systems::{system_moveable, system_animation, system_drawable, system_direction, SystemsError};
 
@@ -53,6 +53,39 @@ impl From<SystemsError> for GameError {
     fn from(err: SystemsError) -> Self {
         GameError::SystemsError(err)
     }
+}
+
+fn create_tile(es: &mut EntitySystem, pos: Position, rect: Drawable, collidable: Option<Collidable>) -> Result<Entity, String> {
+	let tile = match es.new_entity_with_name("Player".to_string()) {
+		Ok(t) => {
+			println!("tile:{}", t);
+			t
+		},
+		Err(e) => panic!("Failed to create tile:{}", e),
+	};
+
+	match es.add_component_to_entity(tile, pos) {
+		Ok(_) => println!("Added position component to tile"),
+		Err(e) => panic!("Failed to add position component to tile:{}", e),
+	}
+
+    match es.add_component_to_entity(tile, rect) {
+        Ok(_) => println!("Added drawable to tile"),
+        Err(e) => panic!("Failed to add drawable to tile:{}", e),
+    }
+
+    if let coll = collidable {
+        match es.add_component_to_entity(tile, coll) {
+            Ok(_) => println!("Added collidable to tile"),
+            Err(e) => panic!("Failed to add collidable to tile:{}", e),
+        }
+    }
+
+    return Ok(tile);
+}
+
+fn create_grass_tile(es: &mut EntitySystem) -> Result<Entity, String> {
+    return create_tile(es, Position::new(7.0, 7.0), Drawable::new(16, 208, 16, 16), None)
 }
 
 fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
@@ -248,6 +281,14 @@ fn main() {
         Ok(p) => p,
         Err(e) => {
             println!("Failed to create player:{}", e);
+            return;
+        },
+    };
+
+    let grass = match create_grass_tile(&mut es) {
+        Ok(g) => g,
+        Err(e) => {
+            println!("Failed to create grass:{}", e);
             return;
         },
     };
