@@ -45,11 +45,12 @@ pub struct Drawable {
     pub y: i32,
     pub w: u32,
     pub h: u32,
+    pub layer: u32,
 }
 
 impl Drawable {
-    pub fn new(x: i32, y: i32, w: u32, h: u32) -> Drawable {
-        return Drawable {x, y, w, h};
+    pub fn new(x: i32, y: i32, w: u32, h: u32, layer: u32) -> Drawable {
+        return Drawable {x, y, w, h, layer};
     }
 }
 

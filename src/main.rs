@@ -85,7 +85,15 @@ fn create_tile(es: &mut EntitySystem, pos: Position, rect: Drawable, collidable:
 }
 
 fn create_grass_tile(es: &mut EntitySystem) -> Result<Entity, String> {
-    return create_tile(es, Position::new(7.0, 7.0), Drawable::new(16, 208, 16, 16), None)
+    return create_tile(es, Position::new(400.0, 400.0), Drawable::new(16, 208, 16, 16, 0), None)
+}
+
+fn create_layer1_grass_tile(es: &mut EntitySystem) -> Result<Entity, String> {
+    return create_tile(es, Position::new(450.0, 400.0), Drawable::new(16, 208, 16, 16, 1), None)
+}
+
+fn create_layer2_grass_tile(es: &mut EntitySystem) -> Result<Entity, String> {
+    return create_tile(es, Position::new(500.0, 400.0), Drawable::new(16, 208, 16, 16, 2), None)
 }
 
 fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
@@ -119,9 +127,11 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 		Err(e) => panic!("Failed to add Direction component to player:{}", e),
 	}
 
+    let layer = 1;
+
     let animation_standing_down = Animation::new_with_frames(
             vec![
-                Drawable::new(16, 272, 15, 15),
+                Drawable::new(16, 272, 15, 15, layer),
             ],
             0.0,
             false,
@@ -130,7 +140,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_standing_up = Animation::new_with_frames(
             vec![
-                Drawable::new(0, 272, 15, 15),
+                Drawable::new(0, 272, 15, 15, layer),
             ],
             0.0,
             false,
@@ -139,7 +149,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_standing_right = Animation::new_with_frames(
             vec![
-                Drawable::new(64, 272, 15, 15),
+                Drawable::new(64, 272, 15, 15, layer),
             ],
             0.0,
             false,
@@ -148,7 +158,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_standing_left = Animation::new_with_frames(
             vec![
-                Drawable::new(64, 272, 15, 15),
+                Drawable::new(64, 272, 15, 15, layer),
             ],
             0.0,
             true,
@@ -157,9 +167,9 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_walking_up = Animation::new_with_frames(
             vec![
-                Drawable::new(0, 272, 15, 15),
-                Drawable::new(128, 272, 15, 15),
-                Drawable::new(144, 272, 15, 15),
+                Drawable::new(0, 272, 15, 15, layer),
+                Drawable::new(128, 272, 15, 15, layer),
+                Drawable::new(144, 272, 15, 15, layer),
             ],
             5.0,
             false,
@@ -168,9 +178,9 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_walking_down = Animation::new_with_frames(
             vec![
-                Drawable::new(16, 272, 15, 15),
-                Drawable::new(32, 272, 15, 15),
-                Drawable::new(48, 272, 15, 15),
+                Drawable::new(16, 272, 15, 15, layer),
+                Drawable::new(32, 272, 15, 15, layer),
+                Drawable::new(48, 272, 15, 15, layer),
             ],
             5.0,
             false,
@@ -179,10 +189,10 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_walking_right = Animation::new_with_frames(
             vec![
-                Drawable::new(64, 272, 15, 15),
-                Drawable::new(80, 272, 15, 15),
-                Drawable::new(96, 272, 15, 15),
-                Drawable::new(112, 272, 15, 15),
+                Drawable::new(64, 272, 15, 15, layer),
+                Drawable::new(80, 272, 15, 15, layer),
+                Drawable::new(96, 272, 15, 15, layer),
+                Drawable::new(112, 272, 15, 15, layer),
             ],
             5.0,
             false,
@@ -191,10 +201,10 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let animation_walking_left = Animation::new_with_frames(
             vec![
-                Drawable::new(64, 272, 15, 15),
-                Drawable::new(80, 272, 15, 15),
-                Drawable::new(96, 272, 15, 15),
-                Drawable::new(112, 272, 15, 15),
+                Drawable::new(64, 272, 15, 15, layer),
+                Drawable::new(80, 272, 15, 15, layer),
+                Drawable::new(96, 272, 15, 15, layer),
+                Drawable::new(112, 272, 15, 15, layer),
             ],
             5.0,
             true,
@@ -286,6 +296,22 @@ fn main() {
     };
 
     let grass = match create_grass_tile(&mut es) {
+        Ok(g) => g,
+        Err(e) => {
+            println!("Failed to create grass:{}", e);
+            return;
+        },
+    };
+
+    let grass1 = match create_layer1_grass_tile(&mut es) {
+        Ok(g) => g,
+        Err(e) => {
+            println!("Failed to create grass:{}", e);
+            return;
+        },
+    };
+
+    let grass2 = match create_layer2_grass_tile(&mut es) {
         Ok(g) => g,
         Err(e) => {
             println!("Failed to create grass:{}", e);

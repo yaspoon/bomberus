@@ -1,5 +1,7 @@
 use std::error::Error;
 use std::fmt;
+use std::collections::HashMap;
+use std::cmp::{PartialOrd, Ordering};
 
 use sdl2::rect::Rect;
 use sdl2::rect::Point;
@@ -324,14 +326,52 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError>
 
     canvas.clear();
 
-    if let Some(d) = drawables {
+    #[derive(PartialEq)]
+    enum DrawableLocation {
+        Drawable,
+        Animation,
+    }
+
+    #[derive(PartialEq)]
+    struct Renderable {
+        id: u64, //Entity id of the drawable/animation
+        drawable_location: DrawableLocation, //Where is this entity? In the drawable list or part of an animation
+        layer: u32, //What layer is the drawable to be drawn in
+        y: f64, //Each drawable is sorted by it's y position
+    }
+
+    impl Renderable {
+        fn new(id: u64, drawable_location: DrawableLocation, layer: u32, y: f64) -> Renderable {
+            return Renderable {id, drawable_location, layer, y};
+        }
+    }
+
+    impl PartialOrd for Renderable {
+        fn partial_cmp(&self, other: &Renderable) -> Option<Ordering> {
+            if self.y == other.y {
+                Some(Ordering::Equal)
+            } else if self.y > other.y {
+                Some(Ordering::Greater) //Don't forget that y:0 is the top of the screen and should
+                               //therefore be drawn first!
+            } else if self.y < other.y {
+                Some(Ordering::Less)
+            } else {
+                None
+            }
+        }
+    }
+
+    let mut layers: HashMap<u32, Vec<Renderable>> = HashMap::new();
+    let mut highest_layer = 0;
+
+    if let Some(ref d) = drawables {
         for (id, drawable) in d.iter() {
             match positions.get(&id) {
                 Some(position) => {
-                    let center = Point::new(position.x as i32, position.y as i32);
-                    match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
-                        Ok(_) => (),
-                        Err(e) => println!("Failed to copy texture:{}", e),
+                    let mut layer = layers.entry(drawable.layer).or_insert(Vec::new());
+                    layer.push(Renderable::new(*id, DrawableLocation::Drawable, drawable.layer, position.y));
+                    if drawable.layer > highest_layer {
+                        highest_layer = drawable.layer;
                     }
                 },
                 None => return Err(GameError::SystemsError(SystemsError::Position(format!("No position for drawable for entity {}", id)))),
@@ -340,28 +380,77 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError>
         }
     }
 
-    if let Some(a) = animations {
+    if let Some(ref a) = animations {
         for (id, animations) in a.iter() {
             if animations.current_animation != AnimationType::Empty { //Empty animations aren't drawn
                 match positions.get(&id) {
                     Some(position) => {
-                        let center = Point::new(position.x as i32, position.y as i32);
                         let animation = match animations.animations.get(&animations.current_animation) {
                             Some(a) => a,
                             None => continue,
                         };
                         match animation.frames.get(animations.current_frame) {
                             Some(drawable) => {
-                                match canvas.copy_ex(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2)), 0.0, None,
-                                    animation.flip_horizontal, animation.flip_vertical) {
-                                    Ok(_) => (),
-                                    Err(e) => println!("Failed to copy texture:{}", e),
+                                let mut layer = layers.entry(drawable.layer).or_insert(Vec::new());
+                                layer.push(Renderable::new(*id, DrawableLocation::Animation, drawable.layer, position.y));
+                                if drawable.layer > highest_layer {
+                                    highest_layer = drawable.layer;
                                 }
                             },
                             None => println!("Failed to get current frame {} of {} frames", animations.current_frame, animation.frames.len()),
                        }
                     },
                     None => return Err(GameError::SystemsError(SystemsError::Position(format!("No position for animation for entity {}", id)))),
+                }
+            }
+        }
+    }
+
+    //Sort each layer by the y. This needs to be the opposite though because Don't forget y:0 is at
+    //the top of the screen meaning the smaller the y it should be drawn first
+    for (layer_id, layer) in layers.iter_mut() {
+        layer.sort_by(|a, b| a.partial_cmp(b).unwrap());
+    }
+
+    //Fuck me dead.... we can actually perform the drawing finally
+    //Also this is filthy and just awful to think about, let alone read. 
+    //I pray for future me's sanity trying to understand this garbage.
+    for i in 0..(highest_layer+1) {
+        if let Some(layer) = layers.get(&i) {
+            for renderable in layer {
+                match renderable.drawable_location {
+                    DrawableLocation::Drawable => {
+                        if let Some(ref d) = drawables {
+                            if let Some(drawable) = d.get(&renderable.id) {
+                                if let Some(position) = positions.get(&renderable.id) {
+                                    let center = Point::new(position.x as i32, position.y as i32);
+                                    match canvas.copy(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2))) {
+                                        Ok(_) => (),
+                                        Err(e) => println!("Failed to copy texture:{}", e),
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    //Surely this is the record for using the word "animations" consecutively as
+                    //variable names.....
+                    DrawableLocation::Animation => {
+                        if let Some(ref animations) = animations {
+                            if let Some(ref animations) = animations.get(&renderable.id) {
+                                if let Some(ref animation) = animations.animations.get(&animations.current_animation) {
+                                    let drawable = &animation.frames[animations.current_frame];
+                                    if let Some(position) = positions.get(&renderable.id) {
+                                        let center = Point::new(position.x as i32, position.y as i32);
+                                        match canvas.copy_ex(&game_texture, Some(Rect::new(drawable.x, drawable.y, drawable.w, drawable.h)), Some(Rect::from_center(center, drawable.w*2, drawable.h*2)), 0.0, None,
+                                            animation.flip_horizontal, animation.flip_vertical) {
+                                            Ok(_) => (),
+                                            Err(e) => println!("Failed to copy texture:{}", e),
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
