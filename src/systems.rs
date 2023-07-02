@@ -7,7 +7,7 @@ use sdl2::rect::Rect;
 use sdl2::rect::Point;
 
 use crate::GameError;
-use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction};
+use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI};
 use crate::entity_system::{Entity, EntitySystem, EntitySystemError};
 
 #[derive(Debug)]
@@ -457,6 +457,24 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError>
     }
 
     canvas.present();
+
+    return Ok(());
+}
+
+pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
+    let mut ais = match es.borrow_all_components_of_type_mut::<AI>() {
+        Ok(a) => a,
+        Err(e) => match e {
+            EntitySystemError::NoSuchComponent(_) => {
+                return Ok(());//Not having any AIs isn't the end of the world, just return
+            },
+            _ => return Err(GameError::EntitySystemError(e)),
+        },
+    };
+
+    for (id, ai) in ais.iter_mut() {
+        ai.last_think += dt;
+    }
 
     return Ok(());
 }

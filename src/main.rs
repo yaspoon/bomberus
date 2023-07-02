@@ -18,9 +18,9 @@ use sdl2::image::LoadTexture;
 mod components;
 mod entity_system;
 mod systems;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable};
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
-use systems::{system_moveable, system_animation, system_drawable, system_direction, SystemsError};
+use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, SystemsError};
 
 #[derive(Debug)]
 pub enum GameError {
@@ -96,7 +96,7 @@ fn create_layer2_grass_tile(es: &mut EntitySystem) -> Result<Entity, String> {
     return create_tile(es, Position::new(500.0, 400.0), Drawable::new(16, 208, 16, 16, 2), None)
 }
 
-fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
+fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
 	let player = match es.new_entity_with_name("Player".to_string()) {
 		Ok(p) => {
 			println!("player:{}", p);
@@ -105,7 +105,7 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 		Err(e) => panic!("Failed to create player:{}", e),
 	};
 
-	match es.add_component_to_entity(player, Position::new(0.0, 0.0)) {
+	match es.add_component_to_entity(player, Position::new(640.0, 360.0)) {
 		Ok(_) => println!("Added position component to player"),
 		Err(e) => panic!("Failed to add position component to player:{}", e),
 	}
@@ -114,13 +114,6 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
 		Ok(_) => println!("Added moveable component to player"),
 		Err(e) => panic!("Failed to add moveable component to player:{}", e),
 	}
-
-    /*
-	match es.add_component_to_entity(player, Drawable::new(17, 272, 15, 15)) {
-		Ok(_) => println!("Added Drawable component to player"),
-		Err(e) => panic!("Failed to add drawable component to player:{}", e),
-	}
-    */
 
 	match es.add_component_to_entity(player, Direction::Down) {
 		Ok(_) => println!("Added Direction component to player"),
@@ -223,6 +216,175 @@ fn create_player_entity(es: &mut EntitySystem) -> Result<Entity, String> {
     return Ok(player);
 }
 
+fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
+	let goblin = match es.new_entity() {
+		Ok(g) => {
+			println!("goblin:{}", g);
+			g
+		},
+		Err(e) => panic!("Failed to create green goblin:{}", e),
+	};
+
+	match es.add_component_to_entity(goblin, Position::new(640.0, 160.0)) {
+		Ok(_) => println!("Added position component to goblin"),
+		Err(e) => panic!("Failed to add position component to goblin:{}", e),
+	}
+
+	match es.add_component_to_entity(goblin, Moveable::new(0.0, 0.0)) {
+		Ok(_) => println!("Added moveable component to goblin"),
+		Err(e) => panic!("Failed to add moveable component to goblin:{}", e),
+	}
+
+	match es.add_component_to_entity(goblin, Direction::Down) {
+		Ok(_) => println!("Added direction component to goblin"),
+		Err(e) => panic!("Failed to add Direction component to goblin:{}", e),
+	}
+
+    let layer = 1;
+
+    let animation_standing_down = Animation::new_with_frames(
+            vec![
+                Drawable::new(16, 224, 15, 15, layer),
+            ],
+            0.0,
+            false,
+            false,
+        );
+
+    let animation_standing_up = Animation::new_with_frames(
+            vec![
+                Drawable::new(0, 224, 15, 15, layer),
+            ],
+            0.0,
+            false,
+            false,
+        );
+
+    let animation_standing_right = Animation::new_with_frames(
+            vec![
+                Drawable::new(64, 224, 15, 15, layer),
+            ],
+            0.0,
+            false,
+            false,
+        );
+
+    let animation_standing_left = Animation::new_with_frames(
+            vec![
+                Drawable::new(64, 224, 15, 15, layer),
+            ],
+            0.0,
+            true,
+            false,
+        );
+
+    let animation_walking_up = Animation::new_with_frames(
+            vec![
+                Drawable::new(0, 224, 15, 15, layer),
+                Drawable::new(128, 224, 15, 15, layer),
+                Drawable::new(144, 224, 15, 15, layer),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let animation_walking_down = Animation::new_with_frames(
+            vec![
+                Drawable::new(16, 224, 15, 15, layer),
+                Drawable::new(32, 224, 15, 15, layer),
+                Drawable::new(48, 224, 15, 15, layer),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let animation_walking_right = Animation::new_with_frames(
+            vec![
+                Drawable::new(64, 224, 15, 15, layer),
+                Drawable::new(80, 224, 15, 15, layer),
+                Drawable::new(96, 224, 15, 15, layer),
+                Drawable::new(112, 224, 15, 15, layer),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let animation_walking_left = Animation::new_with_frames(
+            vec![
+                Drawable::new(64, 224, 15, 15, layer),
+                Drawable::new(80, 224, 15, 15, layer),
+                Drawable::new(96, 224, 15, 15, layer),
+                Drawable::new(112, 224, 15, 15, layer),
+            ],
+            5.0,
+            true,
+            false,
+        );
+
+    let goblin_animations = Animations::new(AnimationType::StandingDown, HashMap::from_iter([(AnimationType::WalkingUp, animation_walking_up), (AnimationType::WalkingDown, animation_walking_down), (AnimationType::WalkingRight, animation_walking_right), (AnimationType::WalkingLeft, animation_walking_left),
+        (AnimationType::StandingDown, animation_standing_down), (AnimationType::StandingUp, animation_standing_up), (AnimationType::StandingRight, animation_standing_right), (AnimationType::StandingLeft, animation_standing_left),
+    ]));
+
+    match es.add_component_to_entity(goblin, goblin_animations) {
+        Ok(_) => println!("Added animations to goblin"),
+        Err(e) => panic!("Failed to added animations to goblin"),
+    };
+
+    match es.add_component_to_entity(goblin, AI::new(AIType::Warrior)) {
+        Ok(_) => println!("Added AI to goblin"),
+        Err(e) => panic!("Failed to added AI to goblin"),
+    };
+
+    return Ok(goblin);
+}
+
+fn create_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
+    return create_green_goblin_enemy(es);
+}
+
+fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, String> {
+	let bomb = match es.new_entity() {
+		Ok(b) => {
+			println!("bomb:{}", b);
+            b
+		},
+		Err(e) => panic!("Failed to create bomb:{}", e),
+	};
+
+	match es.add_component_to_entity(bomb, position) {
+		Ok(_) => println!("Added position component to bomb"),
+		Err(e) => panic!("Failed to add position component to bomb:{}", e),
+	}
+
+    let layer = 1;
+
+    let animation_bomb_counting_down = Animation::new_with_frames(
+            vec![
+                Drawable::new(64, 288, 15, 15, layer),
+                Drawable::new(80, 288, 15, 15, layer),
+                Drawable::new(96, 288, 15, 15, layer),
+                Drawable::new(128, 288, 15, 15, layer),
+                Drawable::new(144, 288, 15, 15, layer),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let bomb_animations = Animations::new(AnimationType::BombCountingDown, HashMap::from_iter([(AnimationType::BombCountingDown, animation_bomb_counting_down)
+    ]));
+
+    match es.add_component_to_entity(bomb, bomb_animations) {
+        Ok(_) => println!("Added animations to bomb"),
+        Err(e) => panic!("Failed to added animations to bomb"),
+    };
+
+    return Ok(bomb);
+}
+
 fn main() {
     //SDL2 setup
     let sdl_context = match sdl2::init() {
@@ -287,7 +449,7 @@ fn main() {
     //Entity System setup
 	let mut es = EntitySystem::new(canvas, game_texture);
 
-    let player = match create_player_entity(&mut es) {
+    let player = match create_player(&mut es) {
         Ok(p) => p,
         Err(e) => {
             println!("Failed to create player:{}", e);
@@ -319,6 +481,22 @@ fn main() {
         },
     };
 
+    let green_goblin = match create_green_goblin_enemy(&mut es) {
+        Ok(gg) => gg,
+        Err(e) => {
+            println!("Failed to create green goblin:{}", e);
+            return;
+        },
+    };
+
+    let bomb = match create_bomb(&mut es, Position::new(640.0, 240.0)) {
+        Ok(b) => b,
+        Err(e) => {
+            println!("Failed to create bomb:{}", e);
+            return;
+        },
+    };
+
     let mut event_pump = match sdl_context.event_pump() {
         Ok(ep) => ep,
         Err(e) => {
@@ -328,7 +506,7 @@ fn main() {
     };
 
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai];
 
     let mut previous_frame_time = Instant::now();
     let mut frame: usize = 0;

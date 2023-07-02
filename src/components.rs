@@ -74,6 +74,7 @@ impl Animation {
 #[derive(PartialEq, Eq, std::hash::Hash, Copy, Clone)]
 pub enum AnimationType {
     Empty,
+    /*Player & Enemies*/
     StandingDown,
     StandingUp,
     StandingLeft,
@@ -82,6 +83,8 @@ pub enum AnimationType {
     WalkingUp,
     WalkingLeft,
     WalkingRight,
+    /*Bomb*/
+    BombCountingDown,
 }
 
 pub struct Animations {
@@ -103,4 +106,32 @@ pub enum Direction {
     Up,
     Left,
     Right,
+}
+
+pub enum AIState {
+    Idle,
+    Searching,
+    Attacking,
+    Fleeing,
+}
+
+pub enum AIType {
+    Warrior, //Dumb and weak, single bomb kill
+    StrongWarrior, //Dumb and takes multiple bombs to kill
+    Wizard, //Smart and weak, single bomb kill, but can also place bombs
+}
+
+pub struct AI {
+    pub last_think: f64,
+    pub state: AIState,
+    pub ai_type: AIType,
+}
+
+impl AI {
+    pub fn new(ai_type: AIType) -> Self {
+        return AI {last_think: 0.0, state: AIState::Searching, ai_type};
+    }
+}
+
+pub trait Thinker {
 }
