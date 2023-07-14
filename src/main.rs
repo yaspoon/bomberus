@@ -18,9 +18,9 @@ use sdl2::image::LoadTexture;
 mod components;
 mod entity_system;
 mod systems;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType};
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType, Think, Thinker, BombThink};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
-use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, SystemsError};
+use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, system_think, SystemsError};
 
 #[derive(Debug)]
 pub enum GameError {
@@ -374,12 +374,29 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
             false,
         );
 
-    let bomb_animations = Animations::new(AnimationType::BombCountingDown, HashMap::from_iter([(AnimationType::BombCountingDown, animation_bomb_counting_down)
+    let animation_bomb_exploding = Animation::new_with_frames(
+            vec![
+                Drawable::new(224, 256, 15, 15, layer),
+                Drawable::new(224, 272, 15, 15, layer),
+                Drawable::new(224, 288, 15, 15, layer),
+            ],
+            5.0,
+            false,
+            false,
+        );
+
+    let bomb_animations = Animations::new(AnimationType::CountingDown, HashMap::from_iter([(AnimationType::CountingDown, animation_bomb_counting_down), (AnimationType::Exploding, animation_bomb_exploding)
     ]));
 
     match es.add_component_to_entity(bomb, bomb_animations) {
         Ok(_) => println!("Added animations to bomb"),
         Err(e) => panic!("Failed to added animations to bomb"),
+    };
+
+    let bomb_think = Think{thinker: Box::new(BombThink{test: 5}) as Box<dyn Thinker>};
+    match es.add_component_to_entity(bomb, bomb_think) {
+        Ok(_) => println!("Added think to bomb"),
+        Err(e) => panic!("Failed to added think to bomb"),
     };
 
     return Ok(bomb);
@@ -506,7 +523,7 @@ fn main() {
     };
 
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai, &system_think];
 
     let mut previous_frame_time = Instant::now();
     let mut frame: usize = 0;

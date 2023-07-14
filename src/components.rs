@@ -1,5 +1,6 @@
 use std::fmt::{self, Display};
 use std::collections::HashMap;
+use crate::entity_system::{EntitySystem, EntitySystemError};
 
 pub struct Position {
 	pub x: f64,
@@ -84,7 +85,8 @@ pub enum AnimationType {
     WalkingLeft,
     WalkingRight,
     /*Bomb*/
-    BombCountingDown,
+    CountingDown,
+    Exploding,
 }
 
 pub struct Animations {
@@ -134,4 +136,19 @@ impl AI {
 }
 
 pub trait Thinker {
+    fn think(&self, es: &mut EntitySystem, dt: f64, id: u64);
+}
+
+pub struct Think {
+    pub thinker: Box<dyn Thinker>,
+}
+
+pub struct BombThink {
+    pub test: u32,
+}
+
+impl Thinker for BombThink {
+    fn think(&self, es: &mut EntitySystem, dt: f64, id: u64) {
+        println!("Bomb think called test:{}", self.test);
+    }
 }

@@ -7,7 +7,7 @@ use sdl2::rect::Rect;
 use sdl2::rect::Point;
 
 use crate::GameError;
-use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI};
+use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI, Think};
 use crate::entity_system::{Entity, EntitySystem, EntitySystemError};
 
 #[derive(Debug)]
@@ -476,5 +476,22 @@ pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
         ai.last_think += dt;
     }
 
+    return Ok(());
+}
+
+pub fn system_think(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
+    let mut thinks = match es.borrow_all_components_of_type_mut::<Think>() {
+        Ok(t) => t,
+        Err(e) => match e {
+            EntitySystemError::NoSuchComponent(_) => {
+                return Ok(());//Not having any Thinkers isn't the end of the world, just return
+            },
+            _ => return Err(GameError::EntitySystemError(e)),
+        },
+    };
+
+    for (id, thinks) in thinks.iter_mut() {
+        thinks.thinker.think(es, dt, *id);
+    }
     return Ok(());
 }
