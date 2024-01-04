@@ -18,9 +18,11 @@ use sdl2::image::LoadTexture;
 mod components;
 mod entity_system;
 mod systems;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType, Think, Thinker, BombThink};
+mod event;
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType, BombThink, BombExplosion, BombExplosionSprites};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
-use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, system_think, SystemsError};
+use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, system_bomb_think, SystemsError};
+use event::Event;
 
 #[derive(Debug)]
 pub enum GameError {
@@ -346,18 +348,18 @@ fn create_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
 }
 
 fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, String> {
-	let bomb = match es.new_entity() {
-		Ok(b) => {
-			println!("bomb:{}", b);
-            b
-		},
-		Err(e) => panic!("Failed to create bomb:{}", e),
-	};
+    let bomb = match es.new_entity() {
+            Ok(b) => {
+                    println!("bomb:{}", b);
+        b
+            },
+            Err(e) => panic!("Failed to create bomb:{}", e),
+    };
 
-	match es.add_component_to_entity(bomb, position) {
-		Ok(_) => println!("Added position component to bomb"),
-		Err(e) => panic!("Failed to add position component to bomb:{}", e),
-	}
+    match es.add_component_to_entity(bomb, position) {
+            Ok(_) => println!("Added position component to bomb"),
+            Err(e) => panic!("Failed to add position component to bomb:{}", e),
+    }
 
     let layer = 1;
 
@@ -393,13 +395,45 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
         Err(e) => panic!("Failed to added animations to bomb"),
     };
 
-    let bomb_think = Think{thinker: Box::new(BombThink{test: 5}) as Box<dyn Thinker>};
+    let bomb_think = BombThink::new();
     match es.add_component_to_entity(bomb, bomb_think) {
         Ok(_) => println!("Added think to bomb"),
         Err(e) => panic!("Failed to added think to bomb"),
     };
 
-    return Ok(bomb);
+    Ok(bomb)
+}
+
+fn create_bomb_explosion(es: &mut EntitySystem) -> Result<Entity, String> {
+    let be = match es.new_entity() {
+            Ok(be) => {
+                    println!("bomb_explosion:{}", be);
+                    be
+            },
+            Err(e) => panic!("Failed to create bomb_explosion:{}", e),
+    };
+
+
+    let layer = 1;
+    let horizontal_left_tip = Drawable::new(1, 288, 16, 16, layer);
+    let horizontal_mid = Drawable::new(17, 288, 16, 16, layer);
+    let middle = Drawable::new(33, 288, 16, 16, layer);
+    let horizontal_right_tip = Drawable::new(48, 288, 16, 16, layer);
+
+    let mut sprites = HashMap::from_iter([
+        (BombExplosionSprites::HorizontalLeftTip, horizontal_left_tip),
+        (BombExplosionSprites::HorizontalMid, horizontal_mid),
+        (BombExplosionSprites::HorizontalRightTip, horizontal_right_tip),
+        //(BombExplosionSprites::VerticalLeftTip, ver
+    ]);
+
+    let bomb_explosion = BombExplosion::new(sprites);
+    match es.add_component_to_entity(be, bomb_explosion) {
+        Ok(_) => println!("Added think to bomb_explosion"),
+        Err(e) => panic!("Failed to added think to bomb_explosion"),
+    };
+
+    Ok(be)
 }
 
 fn main() {
@@ -523,7 +557,7 @@ fn main() {
     };
 
     //Systems
-    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<(), GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai, &system_think];
+    let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<Option<Vec<Event>>, GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai, &system_bomb_think];
 
     let mut previous_frame_time = Instant::now();
     let mut frame: usize = 0;

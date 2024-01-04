@@ -7,8 +7,9 @@ use sdl2::rect::Rect;
 use sdl2::rect::Point;
 
 use crate::GameError;
-use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI, Think};
+use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI, BombThink, BombThinkState};
 use crate::entity_system::{Entity, EntitySystem, EntitySystemError};
+use crate::event::Event;
 
 #[derive(Debug)]
 pub enum SystemsError {
@@ -39,14 +40,14 @@ impl fmt::Display for SystemsError {
     }
 }
 
-pub fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
+pub fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Event>>, GameError> {
 	let moveables = match es.borrow_all_components_of_type::<Moveable>() {
 		Ok(m) => m,
 		Err(e) => {
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No moveable components in the EntitySystem");
-                    return Ok(()); //Not having any moveables isn't the end of the world
+                    return Ok(None); //Not having any moveables isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -59,7 +60,7 @@ pub fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> 
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No position components in the EntitySystem");
-                    return Ok(()); //Not having any positions isn't the end of the world
+                    return Ok(None); //Not having any positions isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -87,17 +88,17 @@ pub fn system_moveable(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> 
 
 	}
 
-	return Ok(());
+	return Ok(None);
 }
 
-pub fn system_direction(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError> {
+pub fn system_direction(es: &mut EntitySystem, _dt: f64) -> Result<Option<Vec<Event>>, GameError> {
 	let moveables = match es.borrow_all_components_of_type::<Moveable>() {
 		Ok(m) => m,
 		Err(e) => {
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No moveable components in the EntitySystem");
-                    return Ok(()); //Not having any moveables isn't the end of the world
+                    return Ok(None); //Not having any moveables isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -110,7 +111,7 @@ pub fn system_direction(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No direction components in the EntitySystem");
-                    return Ok(()); //Not having any directions isn't the end of the world
+                    return Ok(None); //Not having any directions isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -145,17 +146,17 @@ pub fn system_direction(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError
 
 	}
 
-	return Ok(());
+	return Ok(None);
 }
 
-pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
+pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Event>>, GameError> {
 	let mut animations = match es.borrow_all_components_of_type_mut::<Animations>() {
 		Ok(a) => a,
 		Err(e) => {
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No Animations components in the EntitySystem");
-                    return Ok(()); //Not having any positions isn't the end of the world
+                    return Ok(None); //Not having any positions isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -168,7 +169,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<(), GameError>
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No Moveable components in the EntitySystem");
-                    return Ok(()); //Not having any Moveables isn't the end of the world
+                    return Ok(None); //Not having any Moveables isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -181,7 +182,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<(), GameError>
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No Direction components in the EntitySystem");
-                    return Ok(()); //Not having any Directions isn't the end of the world
+                    return Ok(None); //Not having any Directions isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -278,10 +279,10 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<(), GameError>
         }
     }
 
-    return Ok(());
+    return Ok(None);
 }
 
-pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError> {
+pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<Option<Vec<Event>>, GameError> {
     let mut canvas = es.get_mut_canvas();
 
     let game_texture = es.get_texture();
@@ -317,7 +318,7 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError>
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No position components in the EntitySystem");
-                    return Ok(()); //Not having any positions isn't the end of the world
+                    return Ok(None); //Not having any positions isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -458,15 +459,15 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<(), GameError>
 
     canvas.present();
 
-    return Ok(());
+    return Ok(None);
 }
 
-pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
+pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Event>>, GameError> {
     let mut ais = match es.borrow_all_components_of_type_mut::<AI>() {
         Ok(a) => a,
         Err(e) => match e {
             EntitySystemError::NoSuchComponent(_) => {
-                return Ok(());//Not having any AIs isn't the end of the world, just return
+                return Ok(None);//Not having any AIs isn't the end of the world, just return
             },
             _ => return Err(GameError::EntitySystemError(e)),
         },
@@ -476,22 +477,39 @@ pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
         ai.last_think += dt;
     }
 
-    return Ok(());
+    return Ok(None);
 }
 
-pub fn system_think(es: &mut EntitySystem, dt: f64) -> Result<(), GameError> {
-    let mut thinks = match es.borrow_all_components_of_type_mut::<Think>() {
+pub fn system_bomb_think(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Event>>, GameError> {
+    let mut bombs = match es.borrow_all_components_of_type_mut::<BombThink>() {
         Ok(t) => t,
         Err(e) => match e {
             EntitySystemError::NoSuchComponent(_) => {
-                return Ok(());//Not having any Thinkers isn't the end of the world, just return
+                return Ok(None);//Not having any Thinkers isn't the end of the world, just return
             },
             _ => return Err(GameError::EntitySystemError(e)),
         },
     };
 
-    for (id, thinks) in thinks.iter_mut() {
-        thinks.thinker.think(es, dt, *id);
+    let mut events: Vec<Event> = Vec::new();
+
+    for (id, bomb) in bombs.iter_mut() {
+        bomb.time_since_spawn += dt;
+        match bomb.state {
+            BombThinkState::Spawned => {
+                if bomb.time_since_spawn > 2.0 {
+                    bomb.state = BombThinkState::Exploding;
+                }
+            },
+            BombThinkState::Exploding => {
+            },
+            BombThinkState::Exploded => {
+            },
+        }
     }
-    return Ok(());
+    if events.len() > 0 {
+        return Ok(Some(events));
+    } else {
+        return Ok(None);
+    }
 }

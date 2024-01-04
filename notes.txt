@@ -1,0 +1,21 @@
+Watching Timothy Fords Overwatch ECS talk has some great ideas for solving problems I've already hit.
+
+-SingletonComponents
+Components that there is only one of (Input system etc) do you really need an entity and a single component
+Instead just have getters and setters on the the entitysystem that retrieve that singleton
+
+-Deferment
+Do you really need to do that big update that modifies multiple components state right now during the game loop?
+How about instead you add all the details needed to a list and instead it is performed right before the draw loop?
+That way all these big changes are done in a single place it could also have performance improvements, if the changes are not
+critical to gameplay (like drawing pock marks from bullets) you can spread these changes over a few frames by having a limit
+on how many deferment operations you will perform this frame (AKA how much time is left in the frame keep processesing until close to
+end of frame time EOFT)
+
+Some rules of play that they came up with for their ECS Engine:
+-Components have no functions (Other then some utility functions to create one)
+-Systems have no state
+-Shared code lives in util functions
+-Complex side effects should be deferred
+-Systems cant call other systems
+

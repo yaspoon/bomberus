@@ -131,24 +131,45 @@ pub struct AI {
 
 impl AI {
     pub fn new(ai_type: AIType) -> Self {
-        return AI {last_think: 0.0, state: AIState::Searching, ai_type};
+        AI {last_think: 0.0, state: AIState::Searching, ai_type}
     }
 }
 
-pub trait Thinker {
-    fn think(&self, es: &mut EntitySystem, dt: f64, id: u64);
-}
-
-pub struct Think {
-    pub thinker: Box<dyn Thinker>,
+pub enum BombThinkState {
+    Spawned,
+    Exploding,
+    Exploded,
 }
 
 pub struct BombThink {
-    pub test: u32,
+    pub time_since_spawn: f64,
+    pub state: BombThinkState,
 }
 
-impl Thinker for BombThink {
-    fn think(&self, es: &mut EntitySystem, dt: f64, id: u64) {
-        println!("Bomb think called test:{}", self.test);
+impl BombThink {
+    pub fn new() -> BombThink {
+        BombThink { time_since_spawn: 0.0, state: BombThinkState::Spawned }
+    }
+}
+
+#[derive(PartialEq, Eq, std::hash::Hash)]
+pub enum BombExplosionSprites {
+    HorizontalMid,
+    HorizontalLeftTip,
+    HorizontalRightTip,
+    Middle,
+    VerticalMid,
+    VerticalLeftTip,
+    VerticalRightTip,
+
+}
+
+pub struct BombExplosion {
+    pub sprites: HashMap<BombExplosionSprites, Drawable>,
+}
+
+impl BombExplosion {
+    pub fn new(sprites: HashMap<BombExplosionSprites, Drawable>) -> BombExplosion {
+        BombExplosion { sprites }
     }
 }
