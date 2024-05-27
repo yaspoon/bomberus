@@ -58,7 +58,7 @@ impl From<SystemsError> for GameError {
 }
 
 fn create_tile(es: &mut EntitySystem, pos: Position, rect: Drawable, collidable: Option<Collidable>) -> Result<Entity, String> {
-	let tile = match es.new_entity_with_name("Player".to_string()) {
+	let tile = match es.new_entity_with_name("Tile".to_string()) {
 		Ok(t) => {
 			println!("tile:{}", t);
 			t
