@@ -49,16 +49,7 @@ impl<T: 'static> ComponentHashMap for RefCell<HashMap<u64, T>> {
 	}
 }
 
-#[derive(Copy, Clone, PartialEq, Debug)]
-pub struct Entity {
-	id: u64,
-}
-
-impl Display for Entity {
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		return write!(f, "id:{}", self.id);
-	}
-}
+pub type Entity = u64;
 
 pub struct EntitySystem<'a> {
 	next_id: u64,
@@ -83,19 +74,19 @@ impl<'a> EntitySystem<'a> {
 			panic!("Overflowing next_id, this should be fixed...");	
 		}
 
-		let ent = Entity {id: self.next_id};
+		let ent = self.next_id;
 
 		self.next_id += 1;
-		self.entity_names.insert(name.clone(), ent.id);
-        self.entities.insert(ent.id, name);
+		self.entity_names.insert(name.clone(), ent);
+        self.entities.insert(ent, name);
 
 		return Ok(ent);
 	}
 
 	pub fn _remove_entity(&mut self, ent: Entity) -> Result<(), String> {
-        let name = match self.entities.remove(&ent.id) {
+        let name = match self.entities.remove(&ent) {
             Some(n) => n,
-            None => return Err(format!("No such entity with id:{}", ent.id)),
+            None => return Err(format!("No such entity with id:{}", ent)),
         };
 
 		match self.entity_names.remove(&name) {
@@ -144,7 +135,7 @@ impl<'a> EntitySystem<'a> {
 		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
 			//This will panic if something has already borrowed it. Should probably not panic....
 			let store = store.borrow();
-            let comp = match store.get(&ent.id) {
+            let comp = match store.get(&ent) {
                 Some(c) => c,
                 None => return Err(format!("No such component for entity:{}", ent)),
             };
@@ -165,7 +156,7 @@ impl<'a> EntitySystem<'a> {
 		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
 			//This will panic if something has already borrowed it. Should probably not panic....
 			let mut store = store.borrow_mut();
-            let comp = match store.get_mut(&ent.id) {
+            let comp = match store.get_mut(&ent) {
                 Some(c) => c,
                 None => return Err(format!("No such component for entity:{}", ent)),
             };
@@ -188,7 +179,7 @@ impl<'a> EntitySystem<'a> {
 		};
 
 		if let Some(store) = component_hashmap.as_any_mut().downcast_mut::<RefCell<HashMap<u64,ComponentType>>>() {
-			store.get_mut().insert(ent.id, component);
+			store.get_mut().insert(ent, component);
 		}
 
 		return Ok(());
@@ -200,7 +191,7 @@ impl<'a> EntitySystem<'a> {
             None => return Err(format!("No such entity with name:{}", name)),
         };
 
-        return Ok(Entity {id: *id});
+        return Ok(*id);
     }
 
 	pub fn remove_component_from_entity<ComponentType: 'static>(&mut self, ent: Entity) -> Result<(), String> {
@@ -211,7 +202,7 @@ impl<'a> EntitySystem<'a> {
 
 		if let Some(store) = component_hashmap.as_any().downcast_ref::<RefCell<HashMap<u64,ComponentType>>>() {
 			//This will panic if something has already borrowed it. Should probably not panic....
-            match store.borrow_mut().remove(&ent.id) {
+            match store.borrow_mut().remove(&ent) {
                 Some(_) => return Ok(()),
                 None => return Err(format!("No such component for entity!")),
             }
