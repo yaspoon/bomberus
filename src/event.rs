@@ -2,11 +2,11 @@ pub struct Event {
 }
 
 impl Event {
-    fn new() -> Event {
+    fn _new() -> Event {
         return Event {}
     }
 
-    fn spawn() -> Event {
+    fn _spawn() -> Event {
         return Event {}
     }
 }

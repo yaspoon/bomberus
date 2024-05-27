@@ -1,6 +1,5 @@
 use std::fmt::{self, Display};
 use std::collections::HashMap;
-use crate::entity_system::{EntitySystem, EntitySystemError};
 
 pub struct Position {
 	pub x: f64,
@@ -37,8 +36,8 @@ impl fmt::Display for Moveable {
 }
 
 pub struct Collidable {
-	width: f64,
-	height: f64,
+	_width: f64,
+	_height: f64,
 }
 
 pub struct Drawable {
@@ -63,7 +62,7 @@ pub struct Animation {
 }
 
 impl Animation {
-    pub fn new() -> Self {
+    pub fn _new() -> Self {
         Animation {frames: Vec::new(), fps: 0.0, flip_horizontal: false, flip_vertical: false}
     }
 
@@ -111,16 +110,16 @@ pub enum Direction {
 }
 
 pub enum AIState {
-    Idle,
+    _Idle,
     Searching,
-    Attacking,
-    Fleeing,
+    _Attacking,
+    _Fleeing,
 }
 
 pub enum AIType {
     Warrior, //Dumb and weak, single bomb kill
-    StrongWarrior, //Dumb and takes multiple bombs to kill
-    Wizard, //Smart and weak, single bomb kill, but can also place bombs
+    _StrongWarrior, //Dumb and takes multiple bombs to kill
+    _Wizard, //Smart and weak, single bomb kill, but can also place bombs
 }
 
 pub struct AI {
@@ -152,6 +151,7 @@ impl BombThink {
     }
 }
 
+/*
 #[derive(PartialEq, Eq, std::hash::Hash)]
 pub enum BombExplosionSprites {
     HorizontalMid,
@@ -173,3 +173,4 @@ impl BombExplosion {
         BombExplosion { sprites }
     }
 }
+*/

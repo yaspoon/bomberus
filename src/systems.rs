@@ -8,7 +8,7 @@ use sdl2::rect::Point;
 
 use crate::GameError;
 use crate::components::{Position, Moveable, Drawable, Animations, AnimationType, Direction, AI, BombThink, BombThinkState};
-use crate::entity_system::{Entity, EntitySystem, EntitySystemError};
+use crate::entity_system::{EntitySystem, EntitySystemError};
 use crate::event::Event;
 
 #[derive(Debug)]
@@ -163,7 +163,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
         },
 	};
 
-	let mut moveables = match es.borrow_all_components_of_type_mut::<Moveable>() {
+	let moveables = match es.borrow_all_components_of_type_mut::<Moveable>() {
 		Ok(m) => m,
 		Err(e) => {
             match e {
@@ -176,7 +176,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
         },
 	};
 
-	let mut directions = match es.borrow_all_components_of_type_mut::<Direction>() {
+	let directions = match es.borrow_all_components_of_type_mut::<Direction>() {
 		Ok(d) => d,
 		Err(e) => {
             match e {
@@ -254,8 +254,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
                                         *current_animation_type = AnimationType::StandingLeft;
                                     }
                                 }
-                            },
-                            _ => (),
+                            }
                         }
                     },
                     None => (), //Not having a moveable associated with the animation is totally okay!
@@ -369,7 +368,7 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<Option<Vec<Eve
         for (id, drawable) in d.iter() {
             match positions.get(&id) {
                 Some(position) => {
-                    let mut layer = layers.entry(drawable.layer).or_insert(Vec::new());
+                    let layer = layers.entry(drawable.layer).or_insert(Vec::new());
                     layer.push(Renderable::new(*id, DrawableLocation::Drawable, drawable.layer, position.y));
                     if drawable.layer > highest_layer {
                         highest_layer = drawable.layer;
@@ -392,7 +391,7 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<Option<Vec<Eve
                         };
                         match animation.frames.get(animations.current_frame) {
                             Some(drawable) => {
-                                let mut layer = layers.entry(drawable.layer).or_insert(Vec::new());
+                                let layer = layers.entry(drawable.layer).or_insert(Vec::new());
                                 layer.push(Renderable::new(*id, DrawableLocation::Animation, drawable.layer, position.y));
                                 if drawable.layer > highest_layer {
                                     highest_layer = drawable.layer;
@@ -409,7 +408,7 @@ pub fn system_drawable(es: &mut EntitySystem, _dt: f64) -> Result<Option<Vec<Eve
 
     //Sort each layer by the y. This needs to be the opposite though because Don't forget y:0 is at
     //the top of the screen meaning the smaller the y it should be drawn first
-    for (layer_id, layer) in layers.iter_mut() {
+    for (_layer_id, layer) in layers.iter_mut() {
         layer.sort_by(|a, b| a.partial_cmp(b).unwrap());
     }
 
@@ -473,7 +472,7 @@ pub fn system_ai(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Event>>, G
         },
     };
 
-    for (id, ai) in ais.iter_mut() {
+    for (_id, ai) in ais.iter_mut() {
         ai.last_think += dt;
     }
 
@@ -491,17 +490,23 @@ pub fn system_bomb_think(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Ev
         },
     };
 
-    let mut events: Vec<Event> = Vec::new();
+    let events: Vec<Event> = Vec::new();
 
-    for (id, bomb) in bombs.iter_mut() {
+    for (_id, bomb) in bombs.iter_mut() {
         bomb.time_since_spawn += dt;
         match bomb.state {
             BombThinkState::Spawned => {
                 if bomb.time_since_spawn > 2.0 {
                     bomb.state = BombThinkState::Exploding;
+                    /*
+                    es.component_for_entity_mut::<Animations, _>(id, |anims: &mut Animations| {
+                        Ok(())
+                    });
+                    */
                 }
             },
             BombThinkState::Exploding => {
+                bomb.state = BombThinkState::Exploded;
             },
             BombThinkState::Exploded => {
             },

@@ -1,4 +1,4 @@
-use std::fmt::{self, Display};
+use std::fmt::{self};
 use std::collections::HashMap;
 use std::any::{TypeId, Any};
 use std::cell::{RefCell, RefMut, Ref};
@@ -125,7 +125,7 @@ impl<'a> EntitySystem<'a> {
 		return Err(EntitySystemError::DowncastFailed(format!("Unable to downcast ref to expected component type <{}>", std::any::type_name::<ComponentType>())));
 	}
 
-    pub fn component_for_entity<ComponentType: 'static, F>(&self, ent: Entity, cb: F) -> Result<(), String> where
+    pub fn _component_for_entity<ComponentType: 'static, F>(&self, ent: Entity, cb: F) -> Result<(), String> where
         F: Fn(&ComponentType) -> Result<(), String> {
 		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
 			Some(chm) => chm,
@@ -194,7 +194,7 @@ impl<'a> EntitySystem<'a> {
         return Ok(*id);
     }
 
-	pub fn remove_component_from_entity<ComponentType: 'static>(&mut self, ent: Entity) -> Result<(), String> {
+	pub fn _remove_component_for_entity<ComponentType: 'static>(&mut self, ent: Entity) -> Result<(), String> {
 		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
 			Some(chm) => chm,
 			None => return Err(format!("Unknown component type in store")),

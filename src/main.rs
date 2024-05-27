@@ -1,5 +1,5 @@
 use std::path::Path;
-use std::time::Duration;
+//use std::time::Duration;
 use std::fmt;
 use std::error::Error;
 use std::collections::HashMap;
@@ -9,8 +9,6 @@ use std::time::Instant;
 extern crate sdl2;
 use sdl2::pixels::Color;
 use sdl2::keyboard::Keycode;
-use sdl2::rect::Rect;
-use sdl2::rect::Point;
 
 //sdl2_image
 use sdl2::image::LoadTexture;
@@ -19,7 +17,7 @@ mod components;
 mod entity_system;
 mod systems;
 mod event;
-use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType, BombThink, BombExplosion, BombExplosionSprites};
+use components::{Position, Moveable, Drawable, Animations, Animation, AnimationType, Direction, Collidable, AI, AIType, BombThink};
 use entity_system::{Entity, EntitySystem, EntitySystemError};
 use systems::{system_moveable, system_animation, system_drawable, system_direction, system_ai, system_bomb_think, SystemsError};
 use event::Event;
@@ -76,7 +74,7 @@ fn create_tile(es: &mut EntitySystem, pos: Position, rect: Drawable, collidable:
         Err(e) => panic!("Failed to add drawable to tile:{}", e),
     }
 
-    if let coll = collidable {
+    if let Some(coll) = collidable {
         match es.add_component_to_entity(tile, coll) {
             Ok(_) => println!("Added collidable to tile"),
             Err(e) => panic!("Failed to add collidable to tile:{}", e),
@@ -212,7 +210,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
 
     match es.add_component_to_entity(player, player_animations) {
         Ok(_) => println!("Added animations to player"),
-        Err(e) => panic!("Failed to added animations to player"),
+        Err(_) => panic!("Failed to added animations to player"),
     };
 
     return Ok(player);
@@ -332,18 +330,18 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
 
     match es.add_component_to_entity(goblin, goblin_animations) {
         Ok(_) => println!("Added animations to goblin"),
-        Err(e) => panic!("Failed to added animations to goblin"),
+        Err(_) => panic!("Failed to added animations to goblin"),
     };
 
     match es.add_component_to_entity(goblin, AI::new(AIType::Warrior)) {
         Ok(_) => println!("Added AI to goblin"),
-        Err(e) => panic!("Failed to added AI to goblin"),
+        Err(_) => panic!("Failed to added AI to goblin"),
     };
 
     return Ok(goblin);
 }
 
-fn create_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
+fn _create_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
     return create_green_goblin_enemy(es);
 }
 
@@ -392,18 +390,19 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
 
     match es.add_component_to_entity(bomb, bomb_animations) {
         Ok(_) => println!("Added animations to bomb"),
-        Err(e) => panic!("Failed to added animations to bomb"),
+        Err(_) => panic!("Failed to added animations to bomb"),
     };
 
     let bomb_think = BombThink::new();
     match es.add_component_to_entity(bomb, bomb_think) {
         Ok(_) => println!("Added think to bomb"),
-        Err(e) => panic!("Failed to added think to bomb"),
+        Err(_) => panic!("Failed to added think to bomb"),
     };
 
     Ok(bomb)
 }
 
+/*
 fn create_bomb_explosion(es: &mut EntitySystem) -> Result<Entity, String> {
     let be = match es.new_entity() {
             Ok(be) => {
@@ -417,10 +416,10 @@ fn create_bomb_explosion(es: &mut EntitySystem) -> Result<Entity, String> {
     let layer = 1;
     let horizontal_left_tip = Drawable::new(1, 288, 16, 16, layer);
     let horizontal_mid = Drawable::new(17, 288, 16, 16, layer);
-    let middle = Drawable::new(33, 288, 16, 16, layer);
+    let _middle = Drawable::new(33, 288, 16, 16, layer);
     let horizontal_right_tip = Drawable::new(48, 288, 16, 16, layer);
 
-    let mut sprites = HashMap::from_iter([
+    let sprites = HashMap::from_iter([
         (BombExplosionSprites::HorizontalLeftTip, horizontal_left_tip),
         (BombExplosionSprites::HorizontalMid, horizontal_mid),
         (BombExplosionSprites::HorizontalRightTip, horizontal_right_tip),
@@ -430,11 +429,12 @@ fn create_bomb_explosion(es: &mut EntitySystem) -> Result<Entity, String> {
     let bomb_explosion = BombExplosion::new(sprites);
     match es.add_component_to_entity(be, bomb_explosion) {
         Ok(_) => println!("Added think to bomb_explosion"),
-        Err(e) => panic!("Failed to added think to bomb_explosion"),
+        Err(_) => panic!("Failed to added think to bomb_explosion"),
     };
 
     Ok(be)
 }
+*/
 
 fn main() {
     //SDL2 setup
@@ -508,7 +508,7 @@ fn main() {
         },
     };
 
-    let grass = match create_grass_tile(&mut es) {
+    let _grass = match create_grass_tile(&mut es) {
         Ok(g) => g,
         Err(e) => {
             println!("Failed to create grass:{}", e);
@@ -516,7 +516,7 @@ fn main() {
         },
     };
 
-    let grass1 = match create_layer1_grass_tile(&mut es) {
+    let _grass1 = match create_layer1_grass_tile(&mut es) {
         Ok(g) => g,
         Err(e) => {
             println!("Failed to create grass:{}", e);
@@ -524,7 +524,7 @@ fn main() {
         },
     };
 
-    let grass2 = match create_layer2_grass_tile(&mut es) {
+    let _grass2 = match create_layer2_grass_tile(&mut es) {
         Ok(g) => g,
         Err(e) => {
             println!("Failed to create grass:{}", e);
@@ -532,7 +532,7 @@ fn main() {
         },
     };
 
-    let green_goblin = match create_green_goblin_enemy(&mut es) {
+    let _green_goblin = match create_green_goblin_enemy(&mut es) {
         Ok(gg) => gg,
         Err(e) => {
             println!("Failed to create green goblin:{}", e);
@@ -540,7 +540,7 @@ fn main() {
         },
     };
 
-    let bomb = match create_bomb(&mut es, Position::new(640.0, 240.0)) {
+    let _bomb = match create_bomb(&mut es, Position::new(640.0, 240.0)) {
         Ok(b) => b,
         Err(e) => {
             println!("Failed to create bomb:{}", e);
@@ -560,7 +560,7 @@ fn main() {
     let systems: Vec<&dyn Fn(&mut EntitySystem, f64) -> Result<Option<Vec<Event>>, GameError>> = vec![&system_moveable, &system_animation, &system_drawable, &system_direction, &system_ai, &system_bomb_think];
 
     let mut previous_frame_time = Instant::now();
-    let mut frame: usize = 0;
+    //let mut frame: usize = 0;
     //Main game loop
     'running: loop {
         //Handle input
@@ -694,10 +694,10 @@ fn main() {
             }
         }
 
-        let systems_frame_time = Instant::now();
+        //let systems_frame_time = Instant::now();
         //Sleep for the rest of the frame
-        let frame_duration = Duration::new(1u64, 0u32) / 60;
-        let frame_time = systems_frame_time - previous_frame_time; //The amount of time it's taken this frame to get here
+        //let frame_duration = Duration::new(1u64, 0u32) / 60;
+        //let frame_time = systems_frame_time - previous_frame_time; //The amount of time it's taken this frame to get here
         /*
         match frame_duration.checked_sub(frame_time) {
             Some(d) => ::std::thread::sleep(d),
@@ -708,7 +708,7 @@ fn main() {
         //println!("Frame:{} FrameTime:{}", frame, frame_time.as_secs_f64());
 
         previous_frame_time = current_frame_time;
-        frame += 1;
+        //frame += 1;
     }
 
 }
