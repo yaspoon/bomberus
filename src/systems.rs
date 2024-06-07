@@ -156,7 +156,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
             match e {
                 EntitySystemError::NoSuchComponent(_) => {
                     println!("No Animations components in the EntitySystem");
-                    return Ok(None); //Not having any positions isn't the end of the world
+                    return Ok(None); //Not having any animations isn't the end of the world
                 },
                 _ => return Err(GameError::EntitySystemError(e)),
             }
@@ -190,7 +190,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
 	};
 
     for (id, animations) in animations.iter_mut() {
-        if animations.current_animation != AnimationType::Empty {
+        if animations.current_animation != AnimationType::Empty && animations.playing == true {
             let old_animation_type = animations.current_animation; //Used to check if we changed animation
             let current_animation_type = &mut animations.current_animation;
             if animations.animations.contains_key(&current_animation_type) {
@@ -262,6 +262,7 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
 
                 if *current_animation_type != old_animation_type { //If we changed animation we need to reset the frame count
                     animations.current_frame = 0;
+                    animations.last_frame_time = 0.0;
                 }
 
                 let current_animation = &animations.animations[&current_animation_type];
@@ -270,8 +271,16 @@ pub fn system_animation(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Eve
                     let time_between_frames = 1.0 / current_animation.fps; //Last_frame_time is accumilative, so we need to know how much time elapses between frames, not how frames there are per second
                     animations.last_frame_time += dt;
                     if animations.last_frame_time >= time_between_frames { //Change frames
+                        let old_frame = animations.current_frame;
                         animations.current_frame = (animations.current_frame + 1) % animations.animations[&animations.current_animation].frames.len();
-                        animations.last_frame_time -= time_between_frames;
+                        animations.last_frame_time = 0.0;
+
+                        //If we just jumped back to the first frame of the animation and the
+                        //animation isn't marked as "looping" then stop the animation as it's
+                        //completed
+                        if animations.current_frame == 0 && old_frame > 0 && animations.animations[&animations.current_animation].looping == false {
+                            animations.playing(false);
+                        }
                     }
                 }
             }
@@ -492,17 +501,17 @@ pub fn system_bomb_think(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Ev
 
     let events: Vec<Event> = Vec::new();
 
-    for (_id, bomb) in bombs.iter_mut() {
+    for (id, bomb) in bombs.iter_mut() {
         bomb.time_since_spawn += dt;
         match bomb.state {
             BombThinkState::Spawned => {
                 if bomb.time_since_spawn > 2.0 {
                     bomb.state = BombThinkState::Exploding;
-                    /*
-                    es.component_for_entity_mut::<Animations, _>(id, |anims: &mut Animations| {
+                    let _ = es.component_for_entity_mut::<Animations, _>(*id, |anims: &mut Animations| {
+                        anims.current_animation = AnimationType::Exploding;
+                        anims.playing(true);
                         Ok(())
                     });
-                    */
                 }
             },
             BombThinkState::Exploding => {

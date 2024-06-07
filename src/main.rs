@@ -129,6 +129,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             0.0,
             false,
             false,
+            false,
         );
 
     let animation_standing_up = Animation::new_with_frames(
@@ -136,6 +137,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
                 Drawable::new(0, 272, 15, 15, layer),
             ],
             0.0,
+            false,
             false,
             false,
         );
@@ -147,6 +149,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             0.0,
             false,
             false,
+            false,
         );
 
     let animation_standing_left = Animation::new_with_frames(
@@ -155,6 +158,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             ],
             0.0,
             true,
+            false,
             false,
         );
 
@@ -167,6 +171,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             false,
             false,
+            true,
         );
 
     let animation_walking_down = Animation::new_with_frames(
@@ -178,6 +183,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             false,
             false,
+            true,
         );
 
     let animation_walking_right = Animation::new_with_frames(
@@ -190,6 +196,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             false,
             false,
+            true,
         );
 
     let animation_walking_left = Animation::new_with_frames(
@@ -202,11 +209,14 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             true,
             false,
+            true,
         );
 
-    let player_animations = Animations::new(AnimationType::StandingDown, HashMap::from_iter([(AnimationType::WalkingUp, animation_walking_up), (AnimationType::WalkingDown, animation_walking_down), (AnimationType::WalkingRight, animation_walking_right), (AnimationType::WalkingLeft, animation_walking_left),
+    let mut player_animations = Animations::new(AnimationType::StandingDown, HashMap::from_iter([(AnimationType::WalkingUp, animation_walking_up), (AnimationType::WalkingDown, animation_walking_down), (AnimationType::WalkingRight, animation_walking_right), (AnimationType::WalkingLeft, animation_walking_left),
         (AnimationType::StandingDown, animation_standing_down), (AnimationType::StandingUp, animation_standing_up), (AnimationType::StandingRight, animation_standing_right), (AnimationType::StandingLeft, animation_standing_left),
     ]));
+
+    player_animations.playing(true);
 
     match es.add_component_to_entity(player, player_animations) {
         Ok(_) => println!("Added animations to player"),
@@ -249,6 +259,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             0.0,
             false,
             false,
+            false,
         );
 
     let animation_standing_up = Animation::new_with_frames(
@@ -256,6 +267,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
                 Drawable::new(0, 224, 15, 15, layer),
             ],
             0.0,
+            false,
             false,
             false,
         );
@@ -267,6 +279,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             0.0,
             false,
             false,
+            false,
         );
 
     let animation_standing_left = Animation::new_with_frames(
@@ -275,6 +288,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             ],
             0.0,
             true,
+            false,
             false,
         );
 
@@ -287,6 +301,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             false,
             false,
+            false,
         );
 
     let animation_walking_down = Animation::new_with_frames(
@@ -296,6 +311,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
                 Drawable::new(48, 224, 15, 15, layer),
             ],
             5.0,
+            false,
             false,
             false,
         );
@@ -310,6 +326,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             5.0,
             false,
             false,
+            false,
         );
 
     let animation_walking_left = Animation::new_with_frames(
@@ -321,6 +338,7 @@ fn create_green_goblin_enemy(es: &mut EntitySystem) -> Result<Entity, String> {
             ],
             5.0,
             true,
+            false,
             false,
         );
 
@@ -372,6 +390,7 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
             5.0,
             false,
             false,
+            false,
         );
 
     let animation_bomb_exploding = Animation::new_with_frames(
@@ -383,10 +402,13 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
             5.0,
             false,
             false,
+            false,
         );
 
-    let bomb_animations = Animations::new(AnimationType::CountingDown, HashMap::from_iter([(AnimationType::CountingDown, animation_bomb_counting_down), (AnimationType::Exploding, animation_bomb_exploding)
+    let mut bomb_animations = Animations::new(AnimationType::CountingDown, HashMap::from_iter([(AnimationType::CountingDown, animation_bomb_counting_down), (AnimationType::Exploding, animation_bomb_exploding)
     ]));
+
+    bomb_animations.playing(true);
 
     match es.add_component_to_entity(bomb, bomb_animations) {
         Ok(_) => println!("Added animations to bomb"),

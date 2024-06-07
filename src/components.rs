@@ -59,15 +59,16 @@ pub struct Animation {
     pub fps: f64,
     pub flip_horizontal: bool,
     pub flip_vertical: bool,
+    pub looping: bool,
 }
 
 impl Animation {
     pub fn _new() -> Self {
-        Animation {frames: Vec::new(), fps: 0.0, flip_horizontal: false, flip_vertical: false}
+        Animation {frames: Vec::new(), fps: 0.0, flip_horizontal: false, flip_vertical: false, looping: false}
     }
 
-    pub fn new_with_frames(frames: Vec<Drawable>, fps: f64, flip_horizontal: bool, flip_vertical: bool) -> Self {
-        Animation {frames, fps, flip_horizontal, flip_vertical}
+    pub fn new_with_frames(frames: Vec<Drawable>, fps: f64, flip_horizontal: bool, flip_vertical: bool, looping: bool) -> Self {
+        Animation {frames, fps, flip_horizontal, flip_vertical, looping}
     }
 }
 
@@ -93,11 +94,16 @@ pub struct Animations {
     pub current_animation: AnimationType,
     pub current_frame: usize,
     pub last_frame_time: f64,
+    pub playing: bool,
 }
 
 impl Animations {
     pub fn new(current_animation: AnimationType, animations: HashMap<AnimationType, Animation>) -> Self {
-        return Self {current_animation, animations: animations, current_frame: 0, last_frame_time: 0.0 };
+        return Self {current_animation, animations: animations, current_frame: 0, last_frame_time: 0.0, playing: false};
+    }
+
+    pub fn playing(&mut self, playing: bool) {
+        self.playing = playing;
     }
 }
 
