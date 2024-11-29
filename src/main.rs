@@ -709,10 +709,24 @@ fn main() {
         let current_frame_time = Instant::now();
         let dt = (current_frame_time - previous_frame_time).as_secs_f64();
         //Do the game things
+        let mut events: Vec<Vec<Event>> = Vec::new();
         for system in systems.iter() {
             match system(&mut es, dt) {
-                Ok(_) => (),
+                Ok(system_events) => {
+                    if let Some(system_events) = system_events {
+                        events.push(system_events);
+                    }
+                },
                 Err(e) => panic!("System failed:{}", e),
+            }
+        }
+
+        for event in events.into_iter().flatten() {
+            match event {
+                Event::DestroyEntity(entity) => {
+                    let _ = es.remove_entity(entity);
+                },
+                Event::Stub => (),
             }
         }
 

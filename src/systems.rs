@@ -499,13 +499,13 @@ pub fn system_bomb_think(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Ev
         },
     };
 
-    let events: Vec<Event> = Vec::new();
+    let mut events: Vec<Event> = Vec::new();
 
     for (id, bomb) in bombs.iter_mut() {
         bomb.time_since_spawn += dt;
         match bomb.state {
             BombThinkState::Spawned => {
-                if bomb.time_since_spawn > 2.0 {
+                if bomb.time_since_spawn > 5.0 {
                     bomb.state = BombThinkState::Exploding;
                     let _ = es.component_for_entity_mut::<Animations, _>(*id, |anims: &mut Animations| {
                         anims.current_animation = AnimationType::Exploding;
@@ -518,6 +518,7 @@ pub fn system_bomb_think(es: &mut EntitySystem, dt: f64) -> Result<Option<Vec<Ev
                 bomb.state = BombThinkState::Exploded;
             },
             BombThinkState::Exploded => {
+                events.push(Event::destroy_entity(*id));
             },
         }
     }

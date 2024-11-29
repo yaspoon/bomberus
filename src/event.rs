@@ -1,12 +1,20 @@
-pub struct Event {
+use crate::Entity;
+
+pub enum Event {
+    Stub,
+    DestroyEntity(Entity),
 }
 
 impl Event {
     fn _new() -> Event {
-        return Event {}
+        Event::Stub
     }
 
     fn _spawn() -> Event {
-        return Event {}
+        Event::Stub
+    }
+
+    pub fn destroy_entity(entity: Entity) -> Event {
+        Event::DestroyEntity(entity)
     }
 }

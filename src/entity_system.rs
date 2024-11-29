@@ -37,6 +37,8 @@ pub trait ComponentHashMap {
 	fn as_any(&self) -> & dyn Any;
 	
 	fn as_any_mut(&mut self) -> &mut dyn Any;
+
+        fn remove_entity(&mut self, id: Entity);
 }
 
 impl<T: 'static> ComponentHashMap for RefCell<HashMap<u64, T>> {
@@ -47,6 +49,12 @@ impl<T: 'static> ComponentHashMap for RefCell<HashMap<u64, T>> {
 	fn as_any_mut(&mut self) -> &mut dyn Any {
 		return self as &mut dyn Any;
 	}
+
+        fn remove_entity(&mut self, id: Entity) {
+            if let Some(store) = self.as_any_mut().downcast_ref::<RefCell<HashMap<u64, T>>>() {
+                store.borrow_mut().remove(&id);
+            }
+        }
 }
 
 pub type Entity = u64;
@@ -83,19 +91,23 @@ impl<'a> EntitySystem<'a> {
 		return Ok(ent);
 	}
 
-	pub fn _remove_entity(&mut self, ent: Entity) -> Result<(), String> {
+    pub fn remove_entity(&mut self, ent: Entity) -> Result<(), String> {
         let name = match self.entities.remove(&ent) {
             Some(n) => n,
             None => return Err(format!("No such entity with id:{}", ent)),
         };
 
-		match self.entity_names.remove(&name) {
+	match self.entity_names.remove(&name) {
             Some(_) => (),
             None => return Err(format!("No such entity name {} but the entity id did exist", name)),
         }
 
-		panic!("Removing components not implemented");
-	}
+        for (_, component_hashmap) in self.components.iter_mut() {
+	    component_hashmap.remove_entity(ent);
+        }
+
+        Ok(())
+    }
 
 	pub fn borrow_all_components_of_type<ComponentType: 'static>(&self) -> Result<Ref<HashMap<u64, ComponentType>>, EntitySystemError> {
 		let component_hashmap = match self.components.get(&TypeId::of::<ComponentType>()) {
