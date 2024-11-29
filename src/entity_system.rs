@@ -60,36 +60,36 @@ impl<T: 'static> ComponentHashMap for RefCell<HashMap<u64, T>> {
 pub type Entity = u64;
 
 pub struct EntitySystem<'a> {
-	next_id: u64,
+    next_id: u64,
     entities: HashMap<u64, String>,
-	entity_names: HashMap<String, u64>,
-	components: HashMap<TypeId, Box<dyn ComponentHashMap>>,
+    entity_names: HashMap<String, u64>,
+    components: HashMap<TypeId, Box<dyn ComponentHashMap>>,
     canvas: RefCell<Canvas<Window>>,
     texture: Texture<'a>
 }
 
 impl<'a> EntitySystem<'a> {
-	pub fn new(canvas: Canvas<Window>, texture: Texture<'a>) -> EntitySystem<'a> {
-		return EntitySystem {next_id: 0, entities: HashMap::new(), entity_names: HashMap::new(), components: HashMap::new(), canvas: RefCell::new(canvas), texture};
+    pub fn new(canvas: Canvas<Window>, texture: Texture<'a>) -> EntitySystem<'a> {
+        return EntitySystem {next_id: 0, entities: HashMap::new(), entity_names: HashMap::new(), components: HashMap::new(), canvas: RefCell::new(canvas), texture};
+    }
+
+    pub fn new_entity(&mut self) -> Result<Entity, String> {
+	return self.new_entity_with_name("Unknown".to_string());
+    }
+
+    pub fn new_entity_with_name(&mut self, name: String) -> Result<Entity, String> {
+	if self.next_id == u64::MAX {
+	    panic!("Overflowing next_id, this should be fixed...");
 	}
 
-	pub fn new_entity(&mut self) -> Result<Entity, String> {
-		return self.new_entity_with_name("Unknown".to_string());
-	}
+	let ent = self.next_id;
 
-	pub fn new_entity_with_name(&mut self, name: String) -> Result<Entity, String> {
-		if self.next_id == u64::MAX {
-			panic!("Overflowing next_id, this should be fixed...");	
-		}
-
-		let ent = self.next_id;
-
-		self.next_id += 1;
-		self.entity_names.insert(name.clone(), ent);
+	self.next_id += 1;
+	self.entity_names.insert(name.clone(), ent);
         self.entities.insert(ent, name);
 
-		return Ok(ent);
-	}
+	return Ok(ent);
+    }
 
     pub fn remove_entity(&mut self, ent: Entity) -> Result<(), String> {
         let name = match self.entities.remove(&ent) {

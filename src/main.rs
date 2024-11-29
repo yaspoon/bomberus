@@ -383,18 +383,18 @@ fn create_bomb(es: &mut EntitySystem, position: Position) -> Result<Entity, Stri
             vec![
                 Drawable::new(64, 288, 15, 15, layer),
                 Drawable::new(80, 288, 15, 15, layer),
-                Drawable::new(96, 288, 15, 15, layer),
-                Drawable::new(128, 288, 15, 15, layer),
-                Drawable::new(144, 288, 15, 15, layer),
             ],
             5.0,
             false,
             false,
-            false,
+            true,
         );
 
     let animation_bomb_exploding = Animation::new_with_frames(
             vec![
+                Drawable::new(96, 288, 15, 15, layer),
+                Drawable::new(128, 288, 15, 15, layer),
+                Drawable::new(144, 288, 15, 15, layer),
                 Drawable::new(224, 256, 15, 15, layer),
                 Drawable::new(224, 272, 15, 15, layer),
                 Drawable::new(224, 288, 15, 15, layer),
