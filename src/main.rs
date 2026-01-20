@@ -1,9 +1,11 @@
 use std::path::Path;
 //use std::time::Duration;
 use std::fmt;
+use std::fs::File;
 use std::error::Error;
 use std::collections::HashMap;
 use std::time::Instant;
+use std::io::prelude::*;
 
 //sdl2
 extern crate sdl2;
@@ -12,6 +14,9 @@ use sdl2::keyboard::Keycode;
 
 //sdl2_image
 use sdl2::image::LoadTexture;
+
+//serde
+use serde::Deserialize;
 
 mod components;
 mod entity_system;
@@ -53,6 +58,13 @@ impl From<SystemsError> for GameError {
     fn from(err: SystemsError) -> Self {
         GameError::SystemsError(err)
     }
+}
+
+fn load_component_from_ron<T: for<'a> Deserialize<'a>>(path: &Path) -> T {
+    let mut ron_str = String::new();
+    let mut file = File::open(path).unwrap();
+    file.read_to_string(&mut ron_str);
+    ron::from_str::<T>(&ron_str).unwrap()
 }
 
 fn create_tile(es: &mut EntitySystem, pos: Position, rect: Drawable, collidable: Option<Collidable>) -> Result<Entity, String> {
@@ -122,15 +134,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
 
     let layer = 1;
 
-    let animation_standing_down = Animation::new_with_frames(
-            vec![
-                Drawable::new(16, 272, 15, 15, layer),
-            ],
-            0.0,
-            false,
-            false,
-            false,
-        );
+    let animation_standing_down = load_component_from_ron::<Animation>(Path::new("assets/animations/player/standing_down.ron"));
 
     let animation_standing_up = Animation::new_with_frames(
             vec![
@@ -174,17 +178,7 @@ fn create_player(es: &mut EntitySystem) -> Result<Entity, String> {
             true,
         );
 
-    let animation_walking_down = Animation::new_with_frames(
-            vec![
-                Drawable::new(16, 272, 15, 15, layer),
-                Drawable::new(32, 272, 15, 15, layer),
-                Drawable::new(48, 272, 15, 15, layer),
-            ],
-            5.0,
-            false,
-            false,
-            true,
-        );
+    let animation_walking_down = load_component_from_ron::<Animation>(Path::new("assets/animations/player/walking_down.ron"));
 
     let animation_walking_right = Animation::new_with_frames(
             vec![

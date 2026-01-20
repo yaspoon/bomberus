@@ -1,6 +1,9 @@
 use std::fmt::{self, Display};
 use std::collections::HashMap;
 
+//serde
+use serde::{Deserialize,Serialize};
+
 pub struct Position {
 	pub x: f64,
 	pub y: f64,
@@ -40,6 +43,7 @@ pub struct Collidable {
 	_height: f64,
 }
 
+#[derive(Deserialize,Serialize)]
 pub struct Drawable {
     pub x: i32,
     pub y: i32,
@@ -54,6 +58,7 @@ impl Drawable {
     }
 }
 
+#[derive(Serialize,Deserialize)]
 pub struct Animation {
     pub frames: Vec<Drawable>,
     pub fps: f64,
