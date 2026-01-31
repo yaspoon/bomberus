@@ -1,0 +1,9 @@
+Animation(
+    frames: [
+	Drawable(x:16, y:272, w:15, h:15, layer:1),
+    ],
+    fps: 0.0,
+    flip_horizontal: false,
+    flip_vertical: false,
+    looping: false,
+)
