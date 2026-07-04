@@ -1,3 +1,4 @@
+/* @[crate::components::Animation] */
 Animation(
     frames: [
 	Drawable(x:16, y:272, w:15, h:15, layer:1),

@@ -4,6 +4,7 @@ use std::collections::HashMap;
 //serde
 use serde::{Deserialize,Serialize};
 
+#[derive(Deserialize,Serialize)]
 pub struct Position {
 	pub x: f64,
 	pub y: f64,
@@ -185,3 +186,57 @@ impl BombExplosion {
     }
 }
 */
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+    use std::path::Path;
+    use glob::glob;
+
+    use ron;
+    use super::*;
+
+    /*
+    #[derive(Serialize,Deserialize)]
+    //#[serde(untagged)]
+    enum ComponentRegistry {
+        //Position(super::Position),
+        Position {
+                x: f64,
+                y: f64,
+        },
+        Animation(Animation),
+    }
+    */
+
+    include!(concat!(env!("OUT_DIR"), "/generated_components.rs"));
+
+    /* Iterates over all *.ron files in /assets and tries to deserialise them
+     * to a ComponentRegistry type. The ComponentRegistry type is dynamically created
+     * by the build.rs so it is automatically updated whenever a new component is added to
+     * this file. This is required because there is no easy way to get the type you want to
+     * deserialise from the .ron file. So after going a bit crazy I asked gemini what to do
+     * and it recommended a monilithic enum of all types should deserialise because you must
+     * know the type when deserialising for serde to work.
+     */
+    #[test]
+    fn test_asset_ron_file_deserialisation() {
+        let assets_dir = "assets";
+        let glob_pattern = format!("{}/**/*.ron", assets_dir);
+
+        for entry in glob(&glob_pattern).expect("Failed to read glob pattern") {
+            let path = entry.expect("Invalid entry");
+
+            if path.extension().and_then(|s| s.to_str()) == Some("ron") {
+                let content = fs::read_to_string(&path).expect("Failed to read file");
+
+                if let Err(e) = ron::from_str::<ComponentRegistry>(&content) {
+                    panic!("Failed to deserialise ron asset:{:?}\nReason:{}\n", path.display(), e);
+                } else {
+                    println!("Deserialized {} successfully", path.display());
+                }
+            }
+
+        }
+    }
+}
